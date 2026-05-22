@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FATHOM.EXE - Retro 3D sailing RPG</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for retro terminal aesthetics -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Outfit:wght@300;400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- CRT Terminal Screen Filter Overlay -->
+    <div class="crt-overlay"></div>
+    <div class="scanlines"></div>
+
+    <!-- Splash Screen (Boot/Click to Start) -->
+    <div id="splashScreen" class="overlay-container">
+        <div class="terminal-box title-card animate-flicker">
+            <h1 class="neon-text-green">FATHOM.EXE</h1>
+            <p class="subtitle neon-text-cyan">3D VECTOR SAIL-RPG v1.0.0</p>
+            <div class="divider"></div>
+            <pre class="ascii-art neon-text-amber">
+    /\_             
+   /   \            
+  /     \     _/\   
+ /       \   /   \  
+/_________\ /_____\ 
+ \~~~~~~~/\~~~~~~/  
+  \~~~~~/  \~~~~/   
+   \~~~/    \~~/    
+    \~/      \/     
+   ~~~~~~~~~~~~~~~~~
+            </pre>
+            <p class="blink neon-text-green">*** CLICK TO SET SAIL & RUN SYSTEM BOOT ***</p>
+            <div class="system-logs">
+                <p>SYS_INIT: OK</p>
+                <p>3D_ENGINE_V3: LOADED</p>
+                <p>AUDIO_SYNTH: READY</p>
+                <p>MAP_ARCHIPELAGO: PROCEDURAL_GEN_OK</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game UI Shell -->
+    <div class="game-container">
+        <!-- The Main 3D Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Dynamic HUD Gauges Overlay -->
+        <div class="hud-layer">
+            <!-- Left Info Panel: Sailing Telemetry -->
+            <div class="hud-panel left-panel">
+                <div class="hud-header">NAVIGATION</div>
+                <div class="hud-row">
+                    <span class="hud-label">SHIP:</span>
+                    <span id="hudShipName" class="hud-value neon-text-green">Dinghy</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">SPEED:</span>
+                    <span id="hudSpeed" class="hud-value neon-text-cyan">0.0 KTS</span>
+                </div>
+                <div class="hud-bar-container"><div id="hudSpeedBar" class="hud-bar bar-cyan"></div></div>
+
+
+                <div class="hud-row">
+                    <span class="hud-label">COURSE:</span>
+                    <span id="hudHeading" class="hud-value neon-text-amber">000° N</span>
+                </div>
+            </div>
+
+            <!-- Battle Telemetry Panel -->
+            <div class="hud-panel combat-panel">
+                <div class="hud-header neon-text-red">BATTLE TELEMETRY</div>
+                <div class="hud-row">
+                    <span class="hud-label">HULL HP:</span>
+                    <span id="hudHP" class="hud-value neon-text-red">100 / 100</span>
+                </div>
+                <div class="hud-bar-container"><div id="hudHPBar" class="hud-bar bar-red" style="width: 100%;"></div></div>
+                
+                <div class="hud-row">
+                    <span class="hud-label">PORT RE-ARM:</span>
+                    <span id="hudReloadPort" class="hud-value small-text neon-text-cyan">READY</span>
+                </div>
+                <div class="hud-bar-container"><div id="hudReloadPortBar" class="hud-bar bar-cyan" style="width: 0%;"></div></div>
+
+                <div class="hud-row">
+                    <span class="hud-label">STBD RE-ARM:</span>
+                    <span id="hudReloadStbd" class="hud-value small-text neon-text-cyan">READY</span>
+                </div>
+                <div class="hud-bar-container"><div id="hudReloadStbdBar" class="hud-bar bar-cyan" style="width: 0%;"></div></div>
+
+                <!-- Ammunition Status Overlay -->
+                <div class="hud-header neon-text-amber" style="margin-top: 10px; font-size: 10px;">AMMUNITION (1/2/3)</div>
+                <div class="hud-row">
+                    <span class="hud-label" id="lblAmmoBall">BALL (180m):</span>
+                    <span id="hudAmmoBall" class="hud-value neon-text-yellow">6</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label" id="lblAmmoChain">CHAIN (100m):</span>
+                    <span id="hudAmmoChain" class="hud-value neon-text-cyan">0</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label" id="lblAmmoGrape">GRAPE (60m):</span>
+                    <span id="hudAmmoGrape" class="hud-value neon-text-orange">0</span>
+                </div>
+            </div>
+
+            <!-- Target Locked Indicator (Top-Center) -->
+            <div id="targetOverlay" class="target-panel hidden">
+                <div class="target-header neon-text-red">&lt; TARGET ENGAGED &gt;</div>
+                <div class="hud-row">
+                    <span id="targetName" class="hud-value">PIRATE SLOOP</span>
+                    <span id="targetHP" class="hud-value neon-text-red">100%</span>
+                </div>
+                <div class="hud-bar-container"><div id="targetHPBar" class="hud-bar bar-red" style="width: 100%;"></div></div>
+            </div>
+
+            <!-- No-Fire Zone Warning Banner (Top-Center below target) -->
+            <div id="noFireWarning" class="no-fire-banner hidden">
+                [ HARBOR SECURITY: NO-FIRE ZONE ]
+            </div>
+
+            <!-- Vertical Throttle Indicator -->
+            <div class="hud-vertical-throttle">
+                <div class="throttle-header neon-text-green">SAILS</div>
+                <div class="throttle-track">
+                    <div id="hudThrottleBar" class="throttle-bar bar-green"></div>
+                    <div class="throttle-labels">
+                        <span class="lbl-f">FULL</span>
+                        <span class="lbl-3">3/4</span>
+                        <span class="lbl-2">HALF</span>
+                        <span class="lbl-1">1/4</span>
+                        <span class="lbl-a">ANCH</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Info Panel: Faction & Purse -->
+            <div class="hud-panel right-panel">
+                <div class="hud-header">STATUS</div>
+                <div class="hud-row">
+                    <span class="hud-label">PURSE:</span>
+                    <span id="hudGold" class="hud-value neon-text-amber">150 D</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">ZONE:</span>
+                    <span id="hudZone" class="hud-value neon-text-green">PIRATE'S CRADLE</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">SECTOR:</span>
+                    <span id="hudLocation" class="hud-value neon-text-cyan">OPEN SEA</span>
+                </div>
+                <div class="divider"></div>
+                <div class="hud-header">WIND TELEMETRY</div>
+                <div class="hud-row wind-row">
+                    <div class="compass-dial">
+                        <div id="windNeedle" class="compass-needle"></div>
+                        <div class="compass-labels">
+                            <span class="lbl-n">N</span>
+                            <span class="lbl-s">S</span>
+                        </div>
+                    </div>
+                    <div class="wind-readout">
+                        <div class="hud-row"><span id="hudWind" class="hud-value neon-text-amber">12 KTS NE</span></div>
+                        <div class="hud-row"><span id="hudTacking" class="hud-value small-text" style="color: #00ffcc;">GOOD REACH</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Readout (Bottom-Left) -->
+            <div class="hud-controls">
+                <p>SAILS: [W] RAISE / [S] LOWER</p>
+                <p>STEER: [A] PORT / [D] STARBOARD</p>
+                <p>CAMERA: [DRAG MOUSE] TO ORBIT LOOK</p>
+                <p>COMBAT: [Q] FIRE PORT / [E] FIRE STBD</p>
+                <p>INVENTORY: [I] VIEW HOLD MANIFEST</p>
+            </div>
+
+            <!-- Docking Prompt (Blinking at Center Bottom) -->
+            <div id="dockPrompt" class="dock-prompt hidden animate-blink">
+                [ PRESS SPACE TO DOCK ]
+            </div>
+        </div>
+
+        <!-- Docking Overlay Modal (Retro Terminal UI) -->
+        <div id="dockModal" class="overlay-container hidden">
+            <div class="terminal-box dock-box">
+                <h2 id="portTitle" class="neon-text-amber">PORT OF PORT ROYAL</h2>
+                <p class="subtitle">TERRITORY: KINGDOM OF ENGLAND | CAPTAIN LEVEL: 1</p>
+                <div class="divider"></div>
+                
+                <div class="port-content" id="portContent">
+                    <div class="port-options">
+                        <div class="port-option active-option" onclick="Game.openMarket()">
+                            <span class="option-tag">[M]</span>
+                            <span class="option-desc neon-text-green">MERCHANT MARKET (Buy/Sell Cargo)</span>
+                        </div>
+                        <div class="port-option active-option" onclick="Game.openTavern()">
+                            <span class="option-tag">[T]</span>
+                            <span class="option-desc neon-text-amber">TAVERN (Rumors & Gossip)</span>
+                        </div>
+                        <div class="port-option disabled">
+                            <span class="option-tag">[S]</span>
+                            <span class="option-desc">SHIPYARD - Hull & Cannon Upgrades (Phase 4)</span>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="port-option active-option" onclick="Game.undock()">
+                            <span class="option-tag">[SPACE]</span>
+                            <span class="option-desc blinking">SET SAIL!</span>
+                        </div>
+                    </div>
+
+                    <div class="port-status">
+                        <h3>SHIP MANIFEST</h3>
+                        <p>SHIP: <span class="neon-text-green">The Salty Seagull (Dinghy)</span></p>
+                        <p>GOLD: <span class="neon-text-amber">150 Doubloons</span></p>
+                        <p>CARGO CARRIED: 0 / 10</p>
+                        <ul class="manifest-list">
+                            <li>Rum: 0 barrels</li>
+                            <li>Sugar: 0 crates</li>
+                            <li>Spices: 0 sacks</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigator World Map Overlay Modal -->
+        <div id="mapModal" class="overlay-container hidden">
+            <div class="terminal-box navigator-box">
+                <h2 class="neon-text-green">CRT NAVIGATOR V1.0</h2>
+                <p class="subtitle">TACTICAL CHART & SECTOR WIDE COUPLING</p>
+                <div class="divider"></div>
+
+                <div class="navigator-layout">
+                    <div class="sectors-grid">
+                        <!-- Sector 1: Pirate's Cradle -->
+                        <div id="sector-0" class="sector-card active-sector" onclick="Game.fastTravelTo(0)">
+                            <div class="sector-header">
+                                <span class="sector-id">[SEC A-1]</span>
+                                <span class="sector-name">PIRATE'S CRADLE</span>
+                            </div>
+                            <p class="sector-theme">THEME: REBEL OUTPOSTS</p>
+                            <p class="sector-produce">PRODUCES: <span class="neon-text-green">RUM (Barrels)</span></p>
+                            <p class="sector-ports">PORTS: Royal, Nassau, Tortuga, Havana</p>
+                            <div class="sector-btn-container">
+                                <span class="sector-status-tag neon-text-green">> ACTIVE LOC</span>
+                            </div>
+                        </div>
+
+                        <!-- Sector 2: The Spanish Main -->
+                        <div id="sector-1" class="sector-card" onclick="Game.fastTravelTo(1)">
+                            <div class="sector-header">
+                                <span class="sector-id">[SEC B-2]</span>
+                                <span class="sector-name">THE SPANISH MAIN</span>
+                            </div>
+                            <p class="sector-theme">THEME: IMPERIAL ARMADA</p>
+                            <p class="sector-produce">PRODUCES: <span class="neon-text-green">SUGAR (Crates)</span></p>
+                            <p class="sector-ports">PORTS: Maracaibo, Cartagena, Portobelo, Santiago</p>
+                            <div class="sector-btn-container">
+                                <button class="btn-travel-action">[FAST TRAVEL]</button>
+                            </div>
+                        </div>
+
+                        <!-- Sector 3: Smuggler's Run -->
+                        <div id="sector-2" class="sector-card" onclick="Game.fastTravelTo(2)">
+                            <div class="sector-header">
+                                <span class="sector-id">[SEC C-3]</span>
+                                <span class="sector-name">SMUGGLER'S RUN</span>
+                            </div>
+                            <p class="sector-theme">THEME: TREACHEROUS REEFS</p>
+                            <p class="sector-produce">PRODUCES: <span class="neon-text-green">TOBACCO & SPICES</span></p>
+                            <p class="sector-ports">PORTS: Bermuda, Reef, Turk's, Augustine</p>
+                            <div class="sector-btn-container">
+                                <button class="btn-travel-action">[FAST TRAVEL]</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="navigator-info-panel">
+                        <h3>SECTOR PROTOCOLS</h3>
+                        <p class="error-msg hidden" id="mapErrorMsg"></p>
+                        <p class="info-guidelines">
+                            > FAST TRAVEL REQUIRES SAILING TO THE OPEN OCEAN (DISTANCE &gt; 50 FROM NEAREST HARBOR).
+                            <br><br>
+                            > SECTOR ECONOMIES ARE HIGHLY SPECIALIZED. GOODS COMMONLY PRODUCED IN A ZONE CAN BE SOLD FOR COLOSSAL GAINS IN SCARCE REGIONS.
+                        </p>
+                        <div class="divider"></div>
+                        <button class="btn-back" onclick="Game.toggleMap()">[ESC] CLOSE NAVIGATION CHART</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Manifest Overlay Modal -->
+        <div id="inventoryModal" class="overlay-container hidden">
+            <div class="terminal-box dock-box" style="max-width: 450px; border-color: var(--neon-green); box-shadow: 0 0 30px rgba(51, 255, 51, 0.25);">
+                <h2 class="neon-text-green">CARGO HOLD REGISTER</h2>
+                <p class="subtitle">RETRO DEPOT STORAGE MANIFEST V1.0</p>
+                <div class="divider"></div>
+                
+                <div class="port-status" style="width: 100%; border: none; padding: 0; background: none;">
+                    <p>SHIP: <span id="invShipName" class="neon-text-green">-</span></p>
+                    <p>GOLD: <span id="invGold" class="neon-text-amber">-</span></p>
+                    <p>CARGO WEIGHT: <span id="invCargoCarried" class="neon-text-cyan">-</span></p>
+                    <div class="divider" style="margin-top: 10px; margin-bottom: 10px;"></div>
+                    <ul class="manifest-list" id="invManifestList">
+                        <!-- Loaded dynamically -->
+                    </ul>
+                </div>
+                
+                <div class="divider" style="margin-top: 15px;"></div>
+                <button class="btn-back" onclick="Game.toggleInventory()">[I] CLOSE MANIFEST</button>
+            </div>
+        </div>
+
+        <!-- Fast Travel Loading / Transition Modal -->
+        <div id="travelModal" class="overlay-container hidden">
+            <div class="terminal-box travel-box">
+                <h2 class="neon-text-green animate-blink">SYSTEM TRANSIT IN PROGRESS...</h2>
+                <div class="divider"></div>
+                
+                <div class="travel-interface">
+                    <canvas id="travelCanvas" width="360" height="150"></canvas>
+                    
+                    <div class="travel-console" id="travelConsole">
+                        <p class="travel-log">> INITIATING NAVIGATOR COUPLING...</p>
+                    </div>
+
+                    <div class="travel-progress-container">
+                        <div class="travel-progress-label">TRANSIT PROGRESS: <span id="travelProgressPct">0%</span></div>
+                        <div class="travel-progress-track">
+                            <div id="travelProgressBar" class="travel-progress-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Developer Override / Debug Diagnostic Menu Modal -->
+        <div id="devMenuModal" class="overlay-container hidden">
+            <div class="terminal-box dev-box" style="max-width: 950px; border-color: var(--neon-cyan); box-shadow: 0 0 30px rgba(0, 255, 204, 0.25); text-align: left; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon-cyan); padding-bottom: 10px; margin-bottom: 15px;">
+                    <div>
+                        <h2 class="neon-text-cyan" style="margin: 0; font-family: var(--terminal-font); font-size: 24px;">*** SYSTEM DIAGNOSTIC & OVERRIDE PANEL ***</h2>
+                        <p class="subtitle" style="margin: 3px 0 0 0; color: var(--neon-amber); font-size: 11px;">AUTHORIZED PERSONNEL ONLY / REALTIME VECTOR WORLD MANIPULATION</p>
+                    </div>
+                    <button class="btn-back" onclick="Game.toggleDevMenu()" style="margin: 0; padding: 5px 12px; border-color: var(--neon-red); color: var(--neon-red); box-shadow: 0 0 10px rgba(255, 51, 51, 0.15);">[ESC] CLOSE</button>
+                </div>
+                
+                <div class="dev-menu-columns" style="display: flex; gap: 20px; flex: 1; min-height: 0;">
+                    <!-- Left Column: Controls -->
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 15px; min-width: 0;">
+                        <!-- Ammo Manipulation -->
+                        <div style="border: 1px solid var(--neon-green); padding: 12px; border-radius: 4px; background: rgba(51, 255, 51, 0.02);">
+                            <h3 class="neon-text-green" style="font-size: 14px; margin-bottom: 10px; font-family: var(--terminal-font); border-bottom: 1px solid rgba(51, 255, 51, 0.3); padding-bottom: 4px;">AMMUNITION INVENTORY</h3>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <!-- Ball -->
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span class="neon-text-yellow" style="font-size: 12px; font-family: var(--terminal-font);">STANDARD ROUND (BALL)</span>
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('ball', -10)">-10</button>
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('ball', -1)">-1</button>
+                                        <input type="number" id="devAmmoBall" value="10" min="0" max="999" onchange="Game.setDevAmmo('ball', this.value)" style="width: 50px; background: #000; border: 1px solid var(--neon-green); color: #fff; text-align: center; font-family: var(--terminal-font); font-size: 13px; height: 22px;">
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('ball', 1)">+1</button>
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('ball', 10)">+10</button>
+                                    </div>
+                                </div>
+                                <!-- Chain -->
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span class="neon-text-cyan" style="font-size: 12px; font-family: var(--terminal-font);">RIGGING DAMAGE (CHAIN)</span>
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('chain', -10)">-10</button>
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('chain', -1)">-1</button>
+                                        <input type="number" id="devAmmoChain" value="0" min="0" max="999" onchange="Game.setDevAmmo('chain', this.value)" style="width: 50px; background: #000; border: 1px solid var(--neon-cyan); color: #fff; text-align: center; font-family: var(--terminal-font); font-size: 13px; height: 22px;">
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('chain', 1)">+1</button>
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('chain', 10)">+10</button>
+                                    </div>
+                                </div>
+                                <!-- Grape -->
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span class="neon-text-orange" style="font-size: 12px; font-family: var(--terminal-font);">CREW SHREDDER (GRAPE)</span>
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('grape', -10)">-10</button>
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('grape', -1)">-1</button>
+                                        <input type="number" id="devAmmoGrape" value="0" min="0" max="999" onchange="Game.setDevAmmo('grape', this.value)" style="width: 50px; background: #000; border: 1px solid var(--neon-orange); color: #fff; text-align: center; font-family: var(--terminal-font); font-size: 13px; height: 22px;">
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('grape', 1)">+1</button>
+                                        <button class="dev-btn" onclick="Game.adjustDevAmmo('grape', 10)">+10</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Vessel Selection -->
+                        <div style="border: 1px solid var(--neon-cyan); padding: 12px; border-radius: 4px; background: rgba(0, 255, 204, 0.02);">
+                            <h3 class="neon-text-cyan" style="font-size: 14px; margin-bottom: 10px; font-family: var(--terminal-font); border-bottom: 1px solid rgba(0, 255, 204, 0.3); padding-bottom: 4px;">ACTIVE VESSEL HULL</h3>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 12px; font-family: var(--terminal-font);">SELECT HULL CLASS:</span>
+                                <select id="devShipClassSelect" onchange="Game.changeDevShipClass(this.value)" style="flex: 1; background: #000; border: 1px solid var(--neon-cyan); color: var(--neon-cyan); font-family: var(--terminal-font); font-size: 13px; padding: 4px; border-radius: 2px;">
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                            <div style="margin-top: 8px; font-size: 11px; color: #888; font-family: var(--terminal-font);">
+                                Swapping updates stats: Max HP, Speed, Hold size, and resets current HP to full.
+                            </div>
+                        </div>
+
+                        <!-- Combat Simulation Spawner -->
+                        <div style="border: 1px solid var(--neon-red); padding: 12px; border-radius: 4px; background: rgba(255, 51, 51, 0.02); flex: 1; display: flex; flex-direction: column;">
+                            <h3 class="neon-text-red" style="font-size: 14px; margin-bottom: 10px; font-family: var(--terminal-font); border-bottom: 1px solid rgba(255, 51, 51, 0.3); padding-bottom: 4px;">HOSTILE TARGET GENERATOR</h3>
+                            <div style="display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-size: 12px; font-family: var(--terminal-font);">SPAWN TYPE:</span>
+                                    <select id="devSpawnClassSelect" style="flex: 1; background: #000; border: 1px solid var(--neon-red); color: var(--neon-red); font-family: var(--terminal-font); font-size: 13px; padding: 4px; border-radius: 2px;">
+                                        <!-- Populated dynamically -->
+                                    </select>
+                                    <button class="dev-btn" onclick="Game.spawnDevHostile()" style="border-color: var(--neon-red); color: var(--neon-red); box-shadow: 0 0 10px rgba(255, 51, 51, 0.15); padding: 4px 12px; height: 26px;">GENERATE</button>
+                                </div>
+                                <div style="margin-top: 5px; font-size: 11px; color: #888; font-family: var(--terminal-font);">
+                                    Generates a hostile ship exactly 50 meters directly in front of your bow. Ideal for test firing!
+                                </div>
+                                <div id="devSpawnFeedback" style="color: var(--neon-green); font-size: 11px; font-family: var(--terminal-font); margin-top: auto;">
+                                    READY FOR SIMULATION
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column: Live Commodity Market Matrix -->
+                    <div style="flex: 1.2; display: flex; flex-direction: column; border: 1px solid var(--neon-amber); padding: 12px; border-radius: 4px; background: rgba(255, 170, 0, 0.02); min-width: 0; min-height: 0;">
+                        <h3 class="neon-text-amber" style="font-size: 14px; margin-bottom: 10px; font-family: var(--terminal-font); border-bottom: 1px solid rgba(255, 170, 0, 0.3); padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>LIVE COMMODITY PRICE MATRIX</span>
+                            <span style="font-size: 10px; color: #888; font-weight: normal;">TRAVEL INDEX: <span id="devFluctIndex" class="neon-text-amber">-</span></span>
+                        </h3>
+                        
+                        <div id="devPriceMatrixContainer" style="flex: 1; overflow-y: auto; overflow-x: auto; min-height: 0;">
+                            <!-- Populated dynamically as a clean grid table -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Game JS files in order -->
+    <script src="models3d.js"></script>
+    <script src="engine3d.js"></script>
+    <script src="audio.js"></script>
+    <script src="game.js"></script>
+    <script>
+        // Setup initial interaction listener to clear Splash Screen and Boot audio
+        document.getElementById('splashScreen').addEventListener('click', function() {
+            AudioEngine.init();
+            AudioEngine.playBeep(440, 0.15);
+            setTimeout(() => {
+                AudioEngine.playBeep(880, 0.1);
+            }, 120);
+
+            // Fade out splash screen
+            this.style.opacity = '0';
+            setTimeout(() => {
+                this.classList.add('hidden');
+            }, 600);
+        });
+    </script>
+</body>
+</html>

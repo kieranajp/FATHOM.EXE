@@ -1,0 +1,15 @@
+{
+  "name": "fathom-exe",
+  "version": "1.0.0",
+  "description": "Retro CRT 3D Vector Pirate Game",
+  "main": "game.js",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vitest": "^4.1.7"
+  }
+}
