@@ -21,15 +21,18 @@ A `godot` branch HEAD where:
 
 ### 1. Project file
 
-`project.godot` with:
-- Application name `FATHOM.EXE`
-- Main scene `res://scenes/Main.tscn`
-- Rendering method `forward_plus` (HDR + bloom needs it)
-- Window size 1920×1080, resizable
-- Vsync on
-- Max FPS 120 (`application/run/max_fps = 120`)
-- Forward+ HDR enabled (`rendering/viewport/hdr_2d = true` if applicable; configure WorldEnvironment for 3D HDR)
-- Input map (see below)
+Configure via **Editor → Project Settings** (the editor writes the correct keys into `project.godot`; don't hand-edit unknown keys):
+
+- **General → Application → Config → Name** = `FATHOM.EXE`
+- **General → Application → Run → Main Scene** = `res://scenes/Main.tscn`
+- **General → Application → Run → Max FPS** = `120`
+- **General → Display → Window → Size → Viewport Width / Height** = `1920` × `1080`, resizable
+- **General → Display → Window → Vsync → Vsync Mode** = `Enabled`
+- **General → Rendering → Renderer → Rendering Method** = `forward_plus` (required for HDR + bloom + advanced shaders)
+- **General → Rendering → Viewport → HDR 2D** = `On` (verifies the key for the installed version)
+- **General → Input Map** — populate per the table below
+
+The full WorldEnvironment HDR / tonemap / glow setup lives on the `WorldEnvironment` node in `Main.tscn` (see step 7), not in project settings.
 
 ### 2. Input map
 
@@ -109,7 +112,11 @@ Create three empty/minimal files so subsequent tickets have somewhere to land ch
 - `Camera3D` positioned at `Vector3(0, 5, 10)` looking at origin
 - `MeshInstance3D` with a `BoxMesh` at origin, scaled `Vector3(2, 1, 4)`, using a `ShaderMaterial` with `wireframe.gdshader` — this is the "ship" placeholder
 - `DirectionalLight3D` (off-camera angle)
-- `WorldEnvironment` with HDR tonemap (Filmic or AgX), bloom subtle
+- `WorldEnvironment` node with an `Environment` resource:
+  - **Background → Mode** = `Color`, **Color** = `#050508`
+  - **Tonemap → Mode** = `AgX` (fall back to `Filmic` if AgX missing in your beta build)
+  - **Glow → Enabled** = on; tune intensity later in T09
+  - HDR is implicit when Forward+ is the renderer; nothing further needed here.
 - A `Label3D` reading "FATHOM.EXE foundations smoke scene" floating above the cube
 
 #### `scenes/HUD.tscn`
