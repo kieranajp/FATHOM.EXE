@@ -1,0 +1,20 @@
+# Godot
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+*.translation
+
+# OS / editors
+.DS_Store
+*.swp
+*~
+.vscode/
+.idea/
+
+# JS-era leftovers (still in working tree on this orphan branch)
+node_modules/
+.antigravitycli/
+
+# Player saves
+*.save
