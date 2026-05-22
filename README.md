@@ -13,7 +13,7 @@ The rebuild is executed by parallel agents working in worktrees, each picking up
 
 ## Stack
 
-- **Godot 4.7-beta3** (released 22 May 2026). HDR output, AreaLight3D, regression-focused beta.
+- **Godot 4.7** — tracking master (`godot-git` AUR on Arch). HDR output, AreaLight3D. Bleeding-edge by choice; expect occasional master-branch wobble.
 - **GDScript** primary. No C#.
 - Desktop target. 120 Hz capable. Vsync on by default.
 - Right-handed coords (Godot default). The JS convention of `+Z north` maps to Godot `-Z forward`.

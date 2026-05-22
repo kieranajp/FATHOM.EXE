@@ -4,7 +4,7 @@ This is the contract every agent honours. Do not change it without explicit user
 
 ## Tech stack
 
-- **Godot 4.7-beta3** (or later 4.7.x beta/stable as of pickup date).
+- **Godot 4.7** — tracking master (`godot-git` on Arch / any 4.7.x build is fine). Bleeding edge by choice. If a feature you need has shifted in a recent master commit, log it in the PR.
 - **GDScript** — no C#. No GDExtension unless a ticket explicitly calls for it.
 - Right-handed coordinate system (Godot default). `+X` right, `+Y` up, `-Z` forward.
   - The JS prototype uses left-handed with `+Z` north. Treat JS `+Z` as Godot `-Z`. Document any other axis conversions in code comments.
