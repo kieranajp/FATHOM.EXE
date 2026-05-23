@@ -1,8 +1,9 @@
-# PortMesh — island plinth + LineModel lighthouse + spinning beacon.
+# PortMesh — procedural topographic island + LineModel lighthouse + beacon.
 #
-# Island plinth: stays as a box-mesh + wireframe-shader rectangle — the JS
-# prototype used a procedural topographic island we don't need to replicate
-# yet; the rectangle is the simplest read of "land".
+# Island plinth: runtime-generated via IslandGenerator (JS-port of
+# Models3D.generateIsland). Replaces the box-mesh "yellow plinth" — the
+# generator produces a peak, concentric rings, and per-port shape variation
+# from a deterministic seed derived from port.id.
 #
 # Lighthouse: ported as a LineModel (octagonal base + mid ring + gallery
 # flange + lantern room + peaked cap) from JS models3d.js. The wireframe
@@ -14,7 +15,6 @@
 # JS reference: game.js:3012-3042 (procedural island + lighthouse + spinner).
 class_name PortMesh extends RefCounted
 
-const WIREFRAME_SHADER := preload("res://assets/shaders/wireframe.gdshader")
 const LIGHTHOUSE_MODEL := preload("res://data/models/lighthouse.tres")
 const BEACON_COLOUR: Color = Color(1, 0.85, 0.2, 1)
 
@@ -25,18 +25,14 @@ static func build(port_def: PortDef) -> Node3D:
 	var root := Node3D.new()
 	root.name = "PortVisual"
 
-	# Island: a flat rectangular plinth. Scales to port.size × port.size at the
-	# waterline. Renders as a clean rectangle outline (wireframe-shader on a box
-	# IS the right tool here — all edges are box-aligned).
-	var island := MeshInstance3D.new()
+	# Island: procedural topographic LineModel. Seed deterministically off the
+	# port id so the same port reads the same silhouette every session — same
+	# pattern Economy uses for stocks/pricing (see Economy.port_seed).
+	var island_seed: int = _port_id_seed(port_def.id)
+	var island_model := IslandGenerator.generate(island_seed, port_def.size, port_def.height)
+	island_model.color = port_def.color
+	var island := island_model.build_mesh_instance(1.0)
 	island.name = "Island"
-	var island_mesh := BoxMesh.new()
-	# Width / depth = port footprint diameter (2 × size — size was a radius).
-	island_mesh.size = Vector3(port_def.size * 2.0, port_def.height, port_def.size * 2.0)
-	island.mesh = island_mesh
-	island.material_override = _make_wireframe_material(port_def.color)
-	# BoxMesh is centred at origin; lift so the base sits at y=0 (waterline).
-	island.position = Vector3(0.0, port_def.height * 0.5, 0.0)
 	root.add_child(island)
 
 	# Lighthouse: LineModel anchored on the island summit. The JS lighthouse
@@ -74,12 +70,12 @@ static func build(port_def: PortDef) -> Node3D:
 	return root
 
 
-static func _make_wireframe_material(colour: Color) -> ShaderMaterial:
-	# Shader expects glow_color as Vector3 (not Color) — see OpenSea.tscn for
-	# the same convention. Other uniforms (core_color, glow_intensity,
-	# edge_thickness) keep their shader defaults; the island plinth doesn't
-	# have per-instance reasons to override them.
-	var mat := ShaderMaterial.new()
-	mat.shader = WIREFRAME_SHADER
-	mat.set_shader_parameter("glow_color", Vector3(colour.r, colour.g, colour.b))
-	return mat
+# Deterministic seed from port id — same algorithm as Economy.port_seed (sum
+# of unicode codepoints). Duplicated rather than imported because Economy is
+# an autoload singleton and this static builder is called before scene-tree
+# entry in some test paths. Keep them numerically identical.
+static func _port_id_seed(port_id: String) -> int:
+	var total: int = 0
+	for i in range(port_id.length()):
+		total += port_id.unicode_at(i)
+	return total

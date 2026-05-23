@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-base_orbit = 11.5
+base_orbit = 8.5
 radius_scale_factor = 1.5
 base_pitch = 0.5
 min_pitch = 0.05

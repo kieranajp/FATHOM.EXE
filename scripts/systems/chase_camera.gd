@@ -56,10 +56,14 @@ func _process(delta: float) -> void:
 	# Compose final orbit angles.
 	var final_yaw: float = _player.yaw + _drag_offset_yaw
 	if _player.aim_mode:
-		# Lock yaw offset to the active flank — JS broadside selectors.
-		var flank_offset: float = tuning.aim_flank_yaw_offset
-		if _player.aim_side == "port":
-			flank_offset = -flank_offset
+		# Camera positions opposite the firing flank so the ship doesn't block
+		# the view of targets to that side — i.e. firing AWAY from camera.
+		# aim_side names the *firing* flank (port = -π/2 fire_yaw, starboard =
+		# +π/2 fire_yaw — see player_ship._tick_aim_state). To put the camera
+		# on the opposite side, invert when starboard.
+		var flank_offset: float = compute_aim_yaw_offset(
+			_player.aim_side, tuning.aim_flank_yaw_offset
+		)
 		final_yaw = _player.yaw + flank_offset
 	var final_pitch: float = clampf(
 		tuning.base_pitch + _drag_offset_pitch, tuning.min_pitch, tuning.max_pitch
@@ -98,6 +102,18 @@ func _process(delta: float) -> void:
 	# Apply roll bleed on top of look_at. look_at zeroes roll, so rotate around
 	# local Z to add it back.
 	rotate_object_local(Vector3.FORWARD, _player.roll * tuning.roll_blend)
+
+
+# Static so test code can pin the camera-vs-firing-flank invariant without
+# spinning up a scene tree. Returns the yaw offset (from player.yaw) where the
+# chase camera should sit when aiming at `side`. The camera is placed OPPOSITE
+# the firing flank so it can see across the ship to the targets.
+static func compute_aim_yaw_offset(side: String, magnitude: float) -> float:
+	# side == "port"      → firing port (-π/2)      → camera on starboard (+magnitude)
+	# side == "starboard" → firing starboard (+π/2) → camera on port      (-magnitude)
+	if side == "starboard":
+		return -magnitude
+	return magnitude
 
 
 func _unhandled_input(event: InputEvent) -> void:
