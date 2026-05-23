@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Shader" path="res://assets/shaders/wireframe.gdshader" id="1"]
 [ext_resource type="Script" path="res://scripts/systems/ocean.gd" id="2"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/systems/chase_camera.gd" id="6"]
 [ext_resource type="Resource" path="res://data/tuning/camera.tres" id="7"]
 [ext_resource type="Script" path="res://scripts/systems/open_sea.gd" id="8"]
+[ext_resource type="Resource" path="res://data/tuning/dock.tres" id="9"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_wire"]
 shader = ExtResource("1")
@@ -23,6 +24,7 @@ glow_enabled = true
 
 [node name="OpenSea" type="Node3D"]
 script = ExtResource("8")
+tuning = ExtResource("9")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_smoke")
