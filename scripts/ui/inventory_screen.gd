@@ -41,11 +41,10 @@ func refresh() -> void:
 	var ship_state: PlayerState = GameState.ship
 	_gold_label.text = "GOLD:  %d D" % ship_state.gold
 
-	var used := 0
-	for k in ship_state.cargo.keys():
-		used += int(ship_state.cargo[k])
-	var max_cargo := _ship_max_cargo(ship_state)
-	_capacity_label.text = "CARGO: %d / %d" % [used, max_cargo]
+	var used := Economy.total_cargo_count(ship_state)
+	var max_cargo := Economy.max_cargo_for(ship_state)
+	var used_str := "%d" % int(used) if fmod(used, 1.0) == 0.0 else "%.1f" % used
+	_capacity_label.text = "CARGO: %s / %d" % [used_str, max_cargo]
 
 	var port_def := _current_port_def()
 	if port_def != null:
