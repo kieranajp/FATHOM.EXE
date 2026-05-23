@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="DockTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/dock_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+proximity_padding = 15.0
+undock_immunity_seconds = 3.0
+proximity_tick_hz = 4.0
+beacon_spin_rate = 0.6

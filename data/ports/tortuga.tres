@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PortDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/port_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "tortuga"
+display_name = "Tortuga"
+position = Vector3(180, 0, -80)
+size = 25.0
+height = 16.0
+archipelago_id = "pirates_cradle"
+faction_id = "neutral"
+color = Color(1, 0.667, 0, 1)
+base_prices = {
+"rum": { "buy": 20, "sell": 20, "is_producer": true, "is_consumer": false },
+"tobacco": { "buy": 25, "sell": 25, "is_producer": false, "is_consumer": true },
+"wood": { "buy": 12, "sell": 12, "is_producer": false, "is_consumer": false },
+"sugar": { "buy": 15, "sell": 15, "is_producer": false, "is_consumer": false },
+"coffee": { "buy": 22, "sell": 22, "is_producer": false, "is_consumer": true }
+}

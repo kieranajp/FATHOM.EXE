@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PortDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/port_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "maracaibo"
+display_name = "Maracaibo"
+position = Vector3(0, 0, 200)
+size = 27.0
+height = 17.0
+archipelago_id = "spanish_main"
+faction_id = "neutral"
+color = Color(0, 1, 0.8, 1)
+base_prices = {
+"sugar": { "buy": 15, "sell": 15, "is_producer": true, "is_consumer": false },
+"spices": { "buy": 30, "sell": 30, "is_producer": false, "is_consumer": true },
+"cocoa": { "buy": 18, "sell": 18, "is_producer": true, "is_consumer": false },
+"coffee": { "buy": 22, "sell": 22, "is_producer": false, "is_consumer": false },
+"textiles": { "buy": 28, "sell": 28, "is_producer": false, "is_consumer": false }
+}

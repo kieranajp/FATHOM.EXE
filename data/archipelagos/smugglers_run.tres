@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1")
-id = "pirates_cradle"
-display_name = "PIRATE'S CRADLE"
-sector = "SEC A-1"
-color = Color(1, 0.8, 0, 1)
-port_ids = Array[String](["port_royal", "nassau", "tortuga", "havana"])
+id = "smugglers_run"
+display_name = "SMUGGLER'S RUN"
+sector = "SEC C-3"
+color = Color(0, 1, 0.8, 1)
+port_ids = Array[String](["bermuda", "nassau_reef", "turks_island", "st_augustine"])
