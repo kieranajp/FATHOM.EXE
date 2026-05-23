@@ -9,6 +9,11 @@ var particles: Array = []      # sea spray
 var debris: Array = []
 var splashes: Array = []
 
+# The port the player is currently within proximity of. Set by the proximity
+# tick in OpenSea (T03); null when at sea. Distinct from
+# GameState.current_port_id which only flips on dock/undock.
+var active_port: PortDef = null
+
 
 func clear() -> void:
 	enemies.clear()
@@ -16,3 +21,4 @@ func clear() -> void:
 	particles.clear()
 	debris.clear()
 	splashes.clear()
+	active_port = null

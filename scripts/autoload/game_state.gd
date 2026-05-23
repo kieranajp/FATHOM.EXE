@@ -22,7 +22,10 @@ func _ready() -> void:
 
 func reset_new_game() -> void:
 	ship = PlayerState.new()
-	current_archipelago_id = ""
+	# Default start archipelago — T08 (save/load) will overwrite when resuming a
+	# saved run, T08 (map) will mutate via fast-travel. Stays in lockstep with
+	# the JS reference (game.js:2740 spawns the player in Pirate's Cradle).
+	current_archipelago_id = "pirates_cradle"
 	current_port_id = ""
 	travel_count = 0
 	visited_archipelagos = []

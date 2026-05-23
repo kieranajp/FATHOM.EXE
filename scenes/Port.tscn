@@ -1,6 +1,9 @@
-[gd_scene load_steps=1 format=3]
+[gd_scene load_steps=2 format=3]
 
-[node name="Port" type="Node3D"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DockMenu.tscn" id="1"]
 
-[node name="TODO" type="Label3D" parent="."]
-text = "TODO: T03 port scene"
+[node name="Port" type="Node"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="DockMenu" parent="CanvasLayer" instance=ExtResource("1")]
