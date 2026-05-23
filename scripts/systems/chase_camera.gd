@@ -2,9 +2,16 @@
 # so position lag works naturally; if it were parented to the ship it would
 # rigidly track yaw and we'd lose the "swing" feel.
 #
-# Right-mouse drag adds a relative pitch/yaw offset; offsets decay to zero
+# Left-mouse drag adds a relative pitch/yaw offset; offsets decay to zero
 # when released (faster while steering, slower while cruising — JS feel).
-# Hold Space → aim mode: camera freezes orbit at the active flank yaw (±π/2).
+# Right-mouse hold → aim mode (PlayerShip owns the flag); camera freezes
+# orbit at the active flank yaw (±π/2). Space remains a keyboard alternative
+# for aim mode.
+#
+# Left-click is multiplexed with PlayerShip's "fire while aiming" handler —
+# we only treat LMB as orbit-drag when `_player.aim_mode` is false. When
+# aiming, the camera ignores LMB so PlayerShip's _unhandled_input gets it
+# (sibling event order in OpenSea.tscn — verify before adding set_input_as_handled).
 class_name ChaseCamera extends Camera3D
 
 @export var tuning: CameraTuning
@@ -96,8 +103,17 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_RIGHT:
-			_is_dragging = mb.pressed
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			# LMB-drag is camera orbit, but only when not aiming. When the ship
+			# is in aim_mode, LMB means "fire active flank" — let PlayerShip
+			# handle it instead. On press while aiming we leave _is_dragging
+			# alone; on release we always clear in case aim_mode was exited
+			# mid-drag (otherwise the drag would silently stick).
+			if mb.pressed:
+				if _player == null or not _player.aim_mode:
+					_is_dragging = true
+			else:
+				_is_dragging = false
 	elif event is InputEventMouseMotion and _is_dragging:
 		var mm := event as InputEventMouseMotion
 		_drag_offset_yaw += mm.relative.x * tuning.mouse_yaw_sensitivity
