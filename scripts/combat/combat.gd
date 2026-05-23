@@ -227,7 +227,7 @@ static func _spawn_ball_or_chain(
 	use_aim: bool, target_x: float, target_y: float, target_z: float,
 	v_y_fixed: float, v_horiz_fixed: float, muzzle: float,
 	tuning: CombatTuning,
-) -> Dictionary:
+) -> Projectile:
 	var vx: float
 	var vy: float
 	var vz: float
@@ -279,7 +279,7 @@ static func _spawn_grape_pellet(
 	use_aim: bool, target_x: float, target_y: float, target_z: float,
 	muzzle: float, elev_rad: float,
 	tuning: CombatTuning,
-) -> Dictionary:
+) -> Projectile:
 	var rand_spread: float = (randf() - 0.5) * tuning.grape_spread
 	var rand_vy: float = (randf() - 0.5) * tuning.grape_vy_jitter
 	var speed_var: float = lerpf(tuning.grape_speed_min, tuning.grape_speed_max, randf())

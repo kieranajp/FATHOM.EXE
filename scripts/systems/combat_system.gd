@@ -108,7 +108,7 @@ func _tick_reload_timers(delta: float) -> void:
 
 # --- Projectile integration + hit detection. ---
 func _tick_projectiles(delta: float) -> void:
-	var keep: Array = []
+	var keep: Array[Projectile] = []
 	for p in World.projectiles:
 		p.x += p.vx * delta
 		p.z += p.vz * delta
@@ -136,7 +136,7 @@ func _tick_projectiles(delta: float) -> void:
 	World.projectiles = keep
 
 
-func _check_hits_against_enemies(p: Dictionary) -> bool:
+func _check_hits_against_enemies(p: Projectile) -> bool:
 	for e in World.enemies:
 		if e == null or not is_instance_valid(e):
 			continue
@@ -152,9 +152,9 @@ func _check_hits_against_enemies(p: Dictionary) -> bool:
 			enemy.global_position.x, enemy.global_position.y, enemy.global_position.z,
 			hr, hh,
 		):
-			var dmg: float = float(p.get("damage", tuning.ball_damage))
-			var ammo_type: String = String(p.get("type", "ball"))
-			var attacker: Node = p.get("attacker", null) as Node
+			var dmg: float = p.damage
+			var ammo_type: String = p.type
+			var attacker: Node = p.attacker as Node
 			var sunk: bool = Combat.apply_ship_damage(enemy, dmg, enemy.max_health)
 			EventBus.ship_damaged.emit(enemy, dmg, ammo_type)
 			EventBus.projectile_hit.emit(enemy, dmg, ammo_type, attacker)
@@ -168,7 +168,7 @@ func _check_hits_against_enemies(p: Dictionary) -> bool:
 	return false
 
 
-func _check_hits_against_player(p: Dictionary) -> bool:
+func _check_hits_against_player(p: Projectile) -> bool:
 	if _player == null or _player.ship_class == null:
 		return false
 	var hr: float = _player.ship_class.hit_radius
@@ -176,9 +176,9 @@ func _check_hits_against_player(p: Dictionary) -> bool:
 	var pp: Vector3 = _player.global_position
 	if not Combat.check_cylinder_intersection(p.x, p.y, p.z, pp.x, pp.y, pp.z, hr, hh):
 		return false
-	var dmg: float = float(p.get("damage", tuning.ball_damage))
-	var ammo_type: String = String(p.get("type", "ball"))
-	var attacker: Node = p.get("attacker", null) as Node
+	var dmg: float = p.damage
+	var ammo_type: String = p.type
+	var attacker: Node = p.attacker as Node
 	# Player damage lives on GameState.ship.health. Apply with the ship class
 	# max as the cap, mirroring how apply_ship_damage clamps for enemies.
 	var max_hp: float = _player.ship_class.max_health
@@ -243,7 +243,7 @@ func _spawn_debris(x: float, y: float, z: float) -> void:
 
 
 func _tick_splashes(delta: float) -> void:
-	var keep: Array = []
+	var keep: Array[Splash] = []
 	for s in World.splashes:
 		s.life -= delta
 		s.r += (s.max_r - s.r) * 5.0 * delta

@@ -144,7 +144,7 @@ func _rebuild_lines() -> void:
 	# carries splash rings and spark trails now.
 	var has_sparks := false
 	for d in World.debris:
-		if bool(d.get("is_spark", false)):
+		if d.is_spark:
 			has_sparks = true
 			break
 	if World.splashes.is_empty() and not has_sparks:

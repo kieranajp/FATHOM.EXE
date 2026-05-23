@@ -62,7 +62,7 @@ func _spawn_enemy_at(pos: Vector3, health: float = 100.0) -> EnemyShip:
 
 func test_player_damaged_emits_brace_for_impact() -> void:
 	# Synthetic enemy-owned ball projectile sitting on top of the player.
-	var projectile := {
+	var projectile := Projectile.create({
 		"x": 0.0, "y": 0.0, "z": 0.0,
 		"vx": 0.0, "vy": 0.0, "vz": 0.0,
 		"life": 1.0,
@@ -70,7 +70,7 @@ func test_player_damaged_emits_brace_for_impact() -> void:
 		"type": "ball",
 		"damage": 15.0,
 		"attacker": null,
-	}
+	})
 	var hit: bool = _system._check_hits_against_player(projectile)
 	assert_true(hit, "projectile at player position should register a hit")
 
@@ -84,7 +84,7 @@ func test_enemy_sunk_emits_enemy_down() -> void:
 	var enemy := _spawn_enemy_at(Vector3(0.0, 0.0, 0.0), 10.0)
 	assert_not_null(enemy, "spawn_enemy should succeed")
 
-	var projectile := {
+	var projectile := Projectile.create({
 		"x": 0.0, "y": 0.0, "z": 0.0,
 		"vx": 0.0, "vy": 0.0, "vz": 0.0,
 		"life": 1.0,
@@ -92,7 +92,7 @@ func test_enemy_sunk_emits_enemy_down() -> void:
 		"type": "ball",
 		"damage": 100.0,  # overkill
 		"attacker": _player,
-	}
+	})
 	var hit: bool = _system._check_hits_against_enemies(projectile)
 	assert_true(hit, "overkill projectile on enemy should register a hit")
 
@@ -105,7 +105,7 @@ func test_enemy_damaged_but_alive_does_not_emit_enemy_down() -> void:
 	var enemy := _spawn_enemy_at(Vector3(0.0, 0.0, 0.0), 100.0)
 	assert_not_null(enemy)
 
-	var projectile := {
+	var projectile := Projectile.create({
 		"x": 0.0, "y": 0.0, "z": 0.0,
 		"vx": 0.0, "vy": 0.0, "vz": 0.0,
 		"life": 1.0,
@@ -113,7 +113,7 @@ func test_enemy_damaged_but_alive_does_not_emit_enemy_down() -> void:
 		"type": "ball",
 		"damage": 10.0,
 		"attacker": _player,
-	}
+	})
 	_system._check_hits_against_enemies(projectile)
 
 	var sunk_msgs := _hud_messages.filter(func(m): return m["text"] == "ENEMY DOWN")
@@ -121,7 +121,7 @@ func test_enemy_damaged_but_alive_does_not_emit_enemy_down() -> void:
 
 
 func test_chain_shot_emits_rigging_damaged_warning() -> void:
-	var projectile := {
+	var projectile := Projectile.create({
 		"x": 0.0, "y": 0.0, "z": 0.0,
 		"vx": 0.0, "vy": 0.0, "vz": 0.0,
 		"life": 1.0,
@@ -129,7 +129,7 @@ func test_chain_shot_emits_rigging_damaged_warning() -> void:
 		"type": "chain",
 		"damage": 5.0,
 		"attacker": null,
-	}
+	})
 	_system._check_hits_against_player(projectile)
 
 	var rigging := _hud_messages.filter(func(m): return String(m["text"]).begins_with("RIGGING DAMAGED"))

@@ -50,21 +50,21 @@ func test_projectiles_alone_emit_no_lines_surface() -> void:
 	# empty. Geometry for all three types now lives on the heads mesh — see
 	# test_chain_bola_emits_two_heads_plus_link below for the chain pin.
 	World.projectiles = [
-		{
+		Projectile.create({
 			"x": 0.0, "y": 5.0, "z": 0.0,
 			"vx": 10.0, "vy": 0.0, "vz": 5.0,
 			"life": 2.0, "type": "ball", "is_player_owned": true,
-		},
-		{
+		}),
+		Projectile.create({
 			"x": 10.0, "y": 4.0, "z": 0.0,
 			"vx": -5.0, "vy": -1.0, "vz": 0.0,
 			"life": 1.5, "type": "chain", "is_player_owned": false,
-		},
-		{
+		}),
+		Projectile.create({
 			"x": 5.0, "y": 3.0, "z": 5.0,
 			"vx": 1.0, "vy": -0.5, "vz": 1.0,
 			"life": 0.5, "type": "grape", "is_player_owned": true,
-		},
+		}),
 	]
 	_visuals._process(0.016)
 	var mesh: ImmediateMesh = _visuals._lines_mesh
@@ -86,10 +86,10 @@ func test_ball_and_grape_emit_solid_head_quads() -> void:
 	await get_tree().process_frame
 
 	World.projectiles = [
-		{"x": 0.0, "y": 5.0, "z": 0.0, "vx": 10.0, "vy": 0.0, "vz": 5.0,
-		 "life": 2.0, "type": "ball", "is_player_owned": true},
-		{"x": 5.0, "y": 3.0, "z": 5.0, "vx": 1.0, "vy": -0.5, "vz": 1.0,
-		 "life": 0.5, "type": "grape", "is_player_owned": true},
+		Projectile.create({"x": 0.0, "y": 5.0, "z": 0.0, "vx": 10.0, "vy": 0.0, "vz": 5.0,
+		 "life": 2.0, "type": "ball", "is_player_owned": true}),
+		Projectile.create({"x": 5.0, "y": 3.0, "z": 5.0, "vx": 1.0, "vy": -0.5, "vz": 1.0,
+		 "life": 0.5, "type": "grape", "is_player_owned": true}),
 	]
 	_visuals._process(0.016)
 	var heads_mesh: ImmediateMesh = _visuals._heads_mesh
@@ -122,8 +122,8 @@ func test_head_quad_has_authored_world_extent() -> void:
 
 	_visuals.tuning.projectile_ball_size = 1.0
 	World.projectiles = [
-		{"x": 0.0, "y": 0.0, "z": 0.0, "vx": 0.0, "vy": 0.0, "vz": 0.0,
-		 "life": 2.0, "type": "ball", "is_player_owned": true},
+		Projectile.create({"x": 0.0, "y": 0.0, "z": 0.0, "vx": 0.0, "vy": 0.0, "vz": 0.0,
+		 "life": 2.0, "type": "ball", "is_player_owned": true}),
 	]
 	_visuals._process(0.016)
 	var arrays := _visuals._heads_mesh.surface_get_arrays(0)
@@ -168,8 +168,8 @@ func test_chain_bola_link_thickness_drives_link_quad_width() -> void:
 	var angle: float = PI * 0.5
 	var life: float = angle / _visuals.tuning.chain_visual_speed
 	World.projectiles = [
-		{"x": 0.0, "y": 0.0, "z": 0.0, "vx": 0.0, "vy": 0.0, "vz": 0.0,
-		 "life": life, "type": "chain", "is_player_owned": true},
+		Projectile.create({"x": 0.0, "y": 0.0, "z": 0.0, "vx": 0.0, "vy": 0.0, "vz": 0.0,
+		 "life": life, "type": "chain", "is_player_owned": true}),
 	]
 	_visuals._process(0.016)
 	var arrays := _visuals._heads_mesh.surface_get_arrays(0)
@@ -203,8 +203,8 @@ func test_chain_bola_emits_two_heads_plus_link() -> void:
 	await get_tree().process_frame
 
 	World.projectiles = [
-		{"x": 0.0, "y": 5.0, "z": 0.0, "vx": 10.0, "vy": 0.0, "vz": 0.0,
-		 "life": 2.0, "type": "chain", "is_player_owned": true},
+		Projectile.create({"x": 0.0, "y": 5.0, "z": 0.0, "vx": 10.0, "vy": 0.0, "vz": 0.0,
+		 "life": 2.0, "type": "chain", "is_player_owned": true}),
 	]
 	_visuals._process(0.016)
 	var heads_mesh: ImmediateMesh = _visuals._heads_mesh
@@ -224,7 +224,7 @@ func test_chain_bola_emits_two_heads_plus_link() -> void:
 
 func test_splashes_produce_ring_geometry() -> void:
 	World.splashes = [
-		{"x": 20.0, "z": 30.0, "r": 1.5, "max_r": 4.0, "life": 0.4},
+		Splash.create({"x": 20.0, "z": 30.0, "r": 1.5, "max_r": 4.0, "life": 0.4}),
 	]
 	_visuals._process(0.016)
 	var mesh: ImmediateMesh = _visuals._lines_mesh
@@ -238,16 +238,16 @@ func test_splashes_produce_ring_geometry() -> void:
 
 func test_sparks_produce_geometry() -> void:
 	World.debris = [
-		{
+		Debris.create({
 			"x": 0.0, "y": 5.0, "z": 0.0,
 			"vx": 1.0, "vy": 2.0, "vz": -1.0,
 			"life": 1.0, "is_spark": true,
-		},
-		{
+		}),
+		Debris.create({
 			"x": 1.0, "y": 5.0, "z": 1.0,
 			"vx": -1.0, "vy": 2.0, "vz": 1.0,
 			"life": 1.0, "is_spark": true,
-		},
+		}),
 	]
 	_visuals._process(0.016)
 	var mesh: ImmediateMesh = _visuals._lines_mesh
@@ -263,20 +263,20 @@ func test_crates_spawn_mesh_instances() -> void:
 	# key CombatVisuals._sync_crates uses. See the comment in _sync_crates: a
 	# mutable dict can't be used as a hash key because Godot 4 hashes by content.
 	World.debris = [
-		{
+		Debris.create({
 			"id": 1,
 			"x": 5.0, "y": 0.0, "z": 5.0,
 			"vx": 0.5, "vy": 0.0, "vz": 0.5,
 			"life": 5.0, "is_spark": false,
 			"yaw": 0.0, "pitch": 0.0, "roll": 0.0,
-		},
-		{
+		}),
+		Debris.create({
 			"id": 2,
 			"x": -5.0, "y": 0.0, "z": -5.0,
 			"vx": -0.5, "vy": 0.0, "vz": -0.5,
 			"life": 5.0, "is_spark": false,
 			"yaw": 1.0, "pitch": 0.5, "roll": 0.0,
-		},
+		}),
 	]
 	_visuals._process(0.016)
 	# Should have created two MeshInstance3D children inside the CombatVisuals
@@ -290,13 +290,13 @@ func test_crates_spawn_mesh_instances() -> void:
 
 func test_crate_visuals_freed_when_debris_clears() -> void:
 	World.debris = [
-		{
+		Debris.create({
 			"id": 42,
 			"x": 0.0, "y": 0.0, "z": 0.0,
 			"vx": 0.0, "vy": 0.0, "vz": 0.0,
 			"life": 5.0, "is_spark": false,
 			"yaw": 0.0, "pitch": 0.0, "roll": 0.0,
-		},
+		}),
 	]
 	_visuals._process(0.016)
 	# Now clear and tick again — visual must clean up.
@@ -321,13 +321,13 @@ func test_crate_visuals_freed_when_debris_clears() -> void:
 # key" because Godot 4 hashes Dictionaries by content. Pin that mutating
 # fields across ticks does NOT desync the visual pool.
 func test_crate_visuals_survive_mutation_across_ticks() -> void:
-	var crate := {
+	var crate := Debris.create({
 		"id": 7,
 		"x": 0.0, "y": 0.0, "z": 0.0,
 		"vx": 0.0, "vy": 0.0, "vz": 0.0,
 		"life": 5.0, "is_spark": false,
 		"yaw": 0.0, "pitch": 0.0, "roll": 0.0,
-	}
+	})
 	World.debris = [crate]
 	_visuals._process(0.016)
 	# Simulate _tick_debris mutating every field that combat_system touches.

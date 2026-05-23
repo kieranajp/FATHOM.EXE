@@ -9,7 +9,7 @@ class_name Projectile extends Resource
 @export var life: float = 0.0
 @export var damage: float = 0.0
 @export var type: String = "ball"
-@export var attacker: Object = null  # PlayerShip or EnemyShip
+var attacker: Object = null  # PlayerShip or EnemyShip — runtime ref only, not serialised (Object isn't exportable)
 @export var is_player_owned: bool = false
 @export var faction_id: String = "pirate"
 
