@@ -1,0 +1,39 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/wireframe.gdshader" id="1"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_wire"]
+shader = ExtResource("1")
+shader_parameter/glow_color = Vector3(0.2, 1, 0.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ship"]
+
+[sub_resource type="Environment" id="Environment_smoke"]
+background_mode = 1
+background_color = Color(0.0196078, 0.0196078, 0.0313726, 1)
+tonemap_mode = 4
+glow_enabled = true
+
+[sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_smoke"]
+
+[node name="OpenSea" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_smoke")
+camera_attributes = SubResource("CameraAttributesPractical_smoke")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, -8, 12, 6)
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.894427, 0.447214, 0, -0.447214, 0.894427, 0, 5, 10)
+
+[node name="Ship" type="MeshInstance3D" parent="."]
+transform = Transform3D(2, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0)
+mesh = SubResource("BoxMesh_ship")
+surface_material_override/0 = SubResource("ShaderMaterial_wire")
+
+[node name="Label3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+text = "FATHOM.EXE foundations smoke scene"
+billboard = 1

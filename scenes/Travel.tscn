@@ -1,0 +1,6 @@
+[gd_scene load_steps=1 format=3]
+
+[node name="Travel" type="Node3D"]
+
+[node name="TODO" type="Label3D" parent="."]
+text = "TODO: T11 fast-travel sequence"

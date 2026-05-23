@@ -1,0 +1,11 @@
+[gd_scene load_steps=1 format=3]
+
+[node name="Shipyard" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="TODO" type="Label" parent="."]
+offset_right = 200.0
+offset_bottom = 40.0
+text = "TODO: T06 shipyard UI"

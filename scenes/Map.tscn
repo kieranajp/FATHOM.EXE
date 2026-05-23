@@ -1,0 +1,8 @@
+[gd_scene load_steps=1 format=3]
+
+[node name="Map" type="CanvasLayer"]
+
+[node name="TODO" type="Label" parent="."]
+offset_right = 200.0
+offset_bottom = 40.0
+text = "TODO: T10 strategic map"
