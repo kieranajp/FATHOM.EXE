@@ -13,10 +13,14 @@ script = ExtResource("1")
 ; (x, y, -z) at port time. JS forward (+Z) → Godot forward (-Z). Don't
 ; double-flip in the renderer.
 ;
-; sailDeformations (sail level shaping) are intentionally NOT ported in this
-; pass — sail is baked at full-billow. Future ticket: animate sail vertices
-; from sail_level. The billow vertex (#16) sits forward of the mast in Godot
-; coords, which is the desired "sail catches wind from behind" shape.
+; sailDeformations — five sail verts collapse toward (top_y, mast_z) at
+; open_factor=0 (anchored, sail rolled up to the yard) and reach their authored
+; positions at open_factor=1 (full billow). The renderer interpolates linearly.
+; Driven from PlayerShip with `_sail_level / 4.0`.
+;
+; AXIS NOTE: JS source had `mastZ: 0.5`. Z is flipped on port, so `mast_z`
+; becomes -0.5 here — matching the mast/yard vertices (10, 11, 14, 15) which
+; all sit at z=-0.5 in the vertices array above.
 
 vertices = PackedVector3Array(
 	0, 1.5, -3,
@@ -60,3 +64,10 @@ edges = PackedInt32Array(
 )
 
 color = Color(0.2, 1, 0.4, 1)
+
+; Sail-billow deformation. See header comment for the open_factor mechanic.
+deformations = [{
+	"indices": PackedInt32Array(12, 13, 14, 15, 16),
+	"top_y": 5.2,
+	"mast_z": -0.5,
+}]

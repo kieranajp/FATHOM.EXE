@@ -9,3 +9,4 @@ low_hp_threshold = 0.30
 assumed_reload_seconds = 3.0
 target_panel_max_distance = 200.0
 wind_needle_length_px = 22.0
+ui_scale = 1.5

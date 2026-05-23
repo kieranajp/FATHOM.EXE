@@ -24,13 +24,30 @@ class_name LineModel extends Resource
 @export var edges: PackedInt32Array  # flat pairs: (i0, i1, i0, i1, …)
 @export var color: Color = Color(1, 1, 1, 1)
 
+# Optional vertex deformations keyed on a 0..1 "open factor" parameter
+# (e.g. sail level / 4 for ships). Each entry is a plain Dictionary with:
+#   indices: PackedInt32Array — vertex indices this entry applies to
+#   top_y:   float            — Y anchor the listed verts collapse toward at f=0
+#   mast_z:  float            — Z anchor the listed verts collapse toward at f=0
+# Applied with factor f: each listed vertex's (y, z) is lerped from
+# (top_y, mast_z) at f=0 to its authored (y, z) at f=1. X is untouched.
+#
+# NOT typed as `Array[Dictionary]` because typed Dictionaries can't nest (per
+# docs/AGENTS.md gotchas), and the inner schema mixes a PackedInt32Array with
+# floats. Plain `Array` of plain Dictionaries keeps .tres authoring simple.
+@export var deformations: Array = []
+
 
 # Builds an ImmediateMesh that draws this model as PRIMITIVE_LINES. Each edge
 # pair becomes two vertices in sequence.
 #
 # `scale` is a uniform multiplier applied to all vertices — convenient when a
 # model authored in metres needs to feel chunkier without re-authoring coords.
-func build_immediate_mesh(scale: float = 1.0) -> ImmediateMesh:
+#
+# `open_factor` drives any `deformations` entries: 0 collapses listed verts to
+# their (top_y, mast_z) anchor, 1 leaves them at their authored position. Models
+# with no deformations are unaffected.
+func build_immediate_mesh(scale: float = 1.0, open_factor: float = 1.0) -> ImmediateMesh:
 	var mesh := ImmediateMesh.new()
 	mesh.clear_surfaces()
 	mesh.surface_begin(Mesh.PRIMITIVE_LINES)
@@ -41,11 +58,45 @@ func build_immediate_mesh(scale: float = 1.0) -> ImmediateMesh:
 		var i0: int = edges[i]
 		var i1: int = edges[i + 1]
 		if i0 >= 0 and i1 >= 0 and i0 < vertices.size() and i1 < vertices.size():
-			mesh.surface_add_vertex(vertices[i0] * scale)
-			mesh.surface_add_vertex(vertices[i1] * scale)
+			mesh.surface_add_vertex(_deformed_vertex(i0, scale, open_factor))
+			mesh.surface_add_vertex(_deformed_vertex(i1, scale, open_factor))
 		i += 2
 	mesh.surface_end()
 	return mesh
+
+
+# Rebuilds the given ImmediateMesh in place using the same logic as
+# build_immediate_mesh. Mirrors Ocean's per-frame regenerate pattern — avoids
+# allocating a fresh ImmediateMesh every frame when only the open_factor moves.
+func rebuild_immediate_mesh(mesh: ImmediateMesh, scale: float = 1.0, open_factor: float = 1.0) -> void:
+	mesh.clear_surfaces()
+	mesh.surface_begin(Mesh.PRIMITIVE_LINES)
+	var n: int = edges.size()
+	var i: int = 0
+	while i + 1 < n:
+		var i0: int = edges[i]
+		var i1: int = edges[i + 1]
+		if i0 >= 0 and i1 >= 0 and i0 < vertices.size() and i1 < vertices.size():
+			mesh.surface_add_vertex(_deformed_vertex(i0, scale, open_factor))
+			mesh.surface_add_vertex(_deformed_vertex(i1, scale, open_factor))
+		i += 2
+	mesh.surface_end()
+
+
+# Returns the scaled position of vertex `idx`, with deformations applied at
+# `open_factor`. Iterates deformations; first match wins (sail verts shouldn't
+# be in multiple entries, but if they were we'd want deterministic order).
+func _deformed_vertex(idx: int, scale: float, open_factor: float) -> Vector3:
+	var v: Vector3 = vertices[idx] * scale
+	for def in deformations:
+		var indices: PackedInt32Array = def.get("indices", PackedInt32Array())
+		if idx in indices:
+			var top_y: float = float(def.get("top_y", 0.0)) * scale
+			var mast_z: float = float(def.get("mast_z", 0.0)) * scale
+			v.y = top_y + (v.y - top_y) * open_factor
+			v.z = mast_z + (v.z - mast_z) * open_factor
+			break
+	return v
 
 
 # Builds a MeshInstance3D ready to drop into a scene. Material is an emissive

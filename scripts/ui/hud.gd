@@ -108,6 +108,19 @@ func _ready() -> void:
 	if tuning == null:
 		tuning = load("res://data/tuning/hud.tres") as HudTuning
 
+	# Bump UI scale uniformly. Playtest flagged the bordered-panel HUD as
+	# smaller than the JS reference; ui_scale lives on HudTuning so it can be
+	# re-tuned without code edits.
+	#
+	# Approach: scale the Root Control and shrink its size to viewport / scale
+	# so right/bottom-anchored panels still anchor to the screen edge after
+	# scaling. A naive CanvasLayer.transform.scaled() multiplies positions but
+	# does NOT resize Root, so right-anchored panels (StatusPanel, Clock) go
+	# off-screen — the Root-level approach keeps anchors honest. Re-applied on
+	# viewport resize so it stays correct after window resize.
+	_apply_ui_scale()
+	get_viewport().size_changed.connect(_apply_ui_scale)
+
 	_alert_panel.visible = false
 	_target_panel.visible = false
 	_dock_prompt.visible = false
@@ -131,6 +144,22 @@ func _ready() -> void:
 	_refresh_location()
 	_refresh_clock()
 	_refresh_ship_name()
+
+
+func _apply_ui_scale() -> void:
+	# Scale + size compensation. Root is anchored full-rect (anchor_right=1,
+	# anchor_bottom=1) so its size tracks the viewport at runtime. We override
+	# size after the scale so anchored children evaluate against the shrunken
+	# (logical) rect, then the scale multiplies it back up to fill the screen.
+	var scale: float = maxf(tuning.ui_scale, 0.01)
+	_root.scale = Vector2(scale, scale)
+	_root.pivot_offset = Vector2.ZERO
+	var vp_size: Vector2 = Vector2(get_viewport().get_visible_rect().size)
+	# Disable anchors temporarily so we can set an explicit size that overrides
+	# the parent-driven full-rect sizing.
+	_root.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_root.position = Vector2.ZERO
+	_root.size = vp_size / scale
 
 
 func _unhandled_input(event: InputEvent) -> void:
