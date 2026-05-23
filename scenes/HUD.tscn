@@ -1,8 +1,105 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1"]
 [ext_resource type="Resource" path="res://data/tuning/hud.tres" id="2"]
 [ext_resource type="Script" path="res://scripts/ui/inventory_screen.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/ui/compass_dial.gd" id="4"]
+
+[sub_resource type="StyleBoxFlat" id="PanelGreen"]
+bg_color = Color(0.024, 0.024, 0.047, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 1, 0.2, 0.55)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 14.0
+content_margin_top = 16.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="PanelAmber"]
+bg_color = Color(0.024, 0.024, 0.047, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.667, 0, 0.55)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 14.0
+content_margin_top = 16.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="PanelRed"]
+bg_color = Color(0.039, 0.024, 0.024, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.333, 0.333, 0.55)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 14.0
+content_margin_top = 16.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="PanelControls"]
+bg_color = Color(0.02, 0.02, 0.039, 0.6)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.12)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="TargetPanel"]
+bg_color = Color(0.04, 0.02, 0.02, 0.6)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.333, 0.333, 0.55)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 12.0
+content_margin_top = 14.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="AlertPanel"]
+bg_color = Color(0.02, 0.024, 0.039, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 1, 0.8, 0.6)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1")
@@ -19,312 +116,480 @@ anchor_bottom = 1.0
 color = Color(1, 0.333333, 0.333333, 0.15)
 mouse_filter = 2
 
-[node name="TopLeft" type="VBoxContainer" parent="Root"]
+; ==========================================
+; NAVIGATION panel (top-left, green border)
+; ==========================================
+[node name="NavPanel" type="PanelContainer" parent="Root"]
 offset_left = 16.0
-offset_top = 12.0
-offset_right = 260.0
-offset_bottom = 60.0
-theme_override_constants/separation = 2
+offset_top = 16.0
+offset_right = 296.0
+offset_bottom = 130.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("PanelGreen")
 
-[node name="Gold" type="Label" parent="Root/TopLeft"]
-text = "0 D"
-theme_override_colors/font_color = Color(1, 0.8, 0, 1)
-theme_override_font_sizes/font_size = 16
+[node name="V" type="VBoxContainer" parent="Root/NavPanel"]
+theme_override_constants/separation = 4
 
-[node name="Location" type="Label" parent="Root/TopLeft"]
-text = "OPEN SEA"
-theme_override_colors/font_color = Color(0, 1, 0.8, 1)
+[node name="Header" type="Label" parent="Root/NavPanel/V"]
+text = "NAVIGATION"
+theme_override_colors/font_color = Color(0.85, 1, 0.85, 0.55)
 theme_override_font_sizes/font_size = 11
 
-[node name="Left" type="VBoxContainer" parent="Root"]
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -250.0
-offset_right = 256.0
-offset_bottom = -16.0
-theme_override_constants/separation = 3
+[node name="ShipRow" type="HBoxContainer" parent="Root/NavPanel/V"]
+theme_override_constants/separation = 8
 
-[node name="ShipName" type="Label" parent="Root/Left"]
-text = "THE SALTY SEAGULL (DINGHY)"
+[node name="Label" type="Label" parent="Root/NavPanel/V/ShipRow"]
+text = "SHIP:"
+theme_override_colors/font_color = Color(0.7, 0.85, 0.7, 0.7)
+theme_override_font_sizes/font_size = 11
+
+[node name="Value" type="Label" parent="Root/NavPanel/V/ShipRow"]
+text = "DINGHY"
 theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
 theme_override_font_sizes/font_size = 11
-
-[node name="Sailing" type="VBoxContainer" parent="Root/Left"]
-theme_override_constants/separation = 3
-
-[node name="HPRow" type="VBoxContainer" parent="Root/Left/Sailing"]
-theme_override_constants/separation = 1
-
-[node name="Header" type="HBoxContainer" parent="Root/Left/Sailing/HPRow"]
-
-[node name="Label" type="Label" parent="Root/Left/Sailing/HPRow/Header"]
-text = "HULL"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_font_sizes/font_size = 10
 size_flags_horizontal = 3
+horizontal_alignment = 2
 
-[node name="Value" type="Label" parent="Root/Left/Sailing/HPRow"]
-text = "100 / 100"
-theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+[node name="SpeedRow" type="HBoxContainer" parent="Root/NavPanel/V"]
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="Root/NavPanel/V/SpeedRow"]
+text = "SPEED:"
+theme_override_colors/font_color = Color(0.7, 0.85, 0.7, 0.7)
 theme_override_font_sizes/font_size = 11
 
-[node name="Bar" type="Control" parent="Root/Left/Sailing/HPRow"]
-custom_minimum_size = Vector2(0, 8)
-size_flags_horizontal = 3
-
-[node name="Bg" type="ColorRect" parent="Root/Left/Sailing/HPRow/Bar"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(0.05, 0.08, 0.05, 0.85)
-
-[node name="Fill" type="ColorRect" parent="Root/Left/Sailing/HPRow/Bar"]
-offset_right = 220.0
-offset_bottom = 8.0
-color = Color(0.2, 1, 0.4, 1)
-
-[node name="SpeedRow" type="VBoxContainer" parent="Root/Left/Sailing"]
-theme_override_constants/separation = 1
-
-[node name="Header" type="HBoxContainer" parent="Root/Left/Sailing/SpeedRow"]
-
-[node name="Label" type="Label" parent="Root/Left/Sailing/SpeedRow/Header"]
-text = "SPEED"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_font_sizes/font_size = 10
-size_flags_horizontal = 3
-
-[node name="Value" type="Label" parent="Root/Left/Sailing/SpeedRow"]
+[node name="Value" type="Label" parent="Root/NavPanel/V/SpeedRow"]
 text = "0.0 KTS"
 theme_override_colors/font_color = Color(0, 1, 0.8, 1)
 theme_override_font_sizes/font_size = 11
+size_flags_horizontal = 3
+horizontal_alignment = 2
 
-[node name="Bar" type="Control" parent="Root/Left/Sailing/SpeedRow"]
-custom_minimum_size = Vector2(0, 8)
+[node name="SpeedBar" type="Control" parent="Root/NavPanel/V"]
+custom_minimum_size = Vector2(0, 4)
 size_flags_horizontal = 3
 
-[node name="Bg" type="ColorRect" parent="Root/Left/Sailing/SpeedRow/Bar"]
+[node name="Bg" type="ColorRect" parent="Root/NavPanel/V/SpeedBar"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.05, 0.08, 0.05, 0.85)
+color = Color(1, 1, 1, 0.08)
 
-[node name="Fill" type="ColorRect" parent="Root/Left/Sailing/SpeedRow/Bar"]
+[node name="Fill" type="ColorRect" parent="Root/NavPanel/V/SpeedBar"]
 offset_right = 0.0
-offset_bottom = 8.0
+offset_bottom = 4.0
 color = Color(0, 1, 0.8, 1)
 
-[node name="ThrottleRow" type="VBoxContainer" parent="Root/Left/Sailing"]
-theme_override_constants/separation = 1
-
-[node name="Header" type="HBoxContainer" parent="Root/Left/Sailing/ThrottleRow"]
-
-[node name="Label" type="Label" parent="Root/Left/Sailing/ThrottleRow/Header"]
-text = "SAIL THROTTLE"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_font_sizes/font_size = 10
-size_flags_horizontal = 3
-
-[node name="Value" type="Label" parent="Root/Left/Sailing/ThrottleRow"]
-text = "2 / 4"
-theme_override_colors/font_color = Color(1, 0.8, 0, 1)
-theme_override_font_sizes/font_size = 11
-
-[node name="Bar" type="Control" parent="Root/Left/Sailing/ThrottleRow"]
-custom_minimum_size = Vector2(14, 44)
-
-[node name="Bg" type="ColorRect" parent="Root/Left/Sailing/ThrottleRow/Bar"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(0.05, 0.08, 0.05, 0.85)
-
-[node name="Fill" type="ColorRect" parent="Root/Left/Sailing/ThrottleRow/Bar"]
-offset_top = 22.0
-offset_right = 14.0
-offset_bottom = 44.0
-color = Color(1, 0.8, 0, 1)
-
-[node name="HeadingRow" type="HBoxContainer" parent="Root/Left/Sailing"]
-theme_override_constants/separation = 6
-
-[node name="Label" type="Label" parent="Root/Left/Sailing/HeadingRow"]
-text = "HDG"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_font_sizes/font_size = 10
-
-[node name="Value" type="Label" parent="Root/Left/Sailing/HeadingRow"]
-text = "000°  N  HEADING"
-theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
-theme_override_font_sizes/font_size = 11
-
-[node name="WindRow" type="HBoxContainer" parent="Root/Left/Sailing"]
+[node name="CourseRow" type="HBoxContainer" parent="Root/NavPanel/V"]
 theme_override_constants/separation = 8
 
-[node name="Compass" type="Control" parent="Root/Left/Sailing/WindRow"]
-custom_minimum_size = Vector2(34, 34)
+[node name="Label" type="Label" parent="Root/NavPanel/V/CourseRow"]
+text = "COURSE:"
+theme_override_colors/font_color = Color(0.7, 0.85, 0.7, 0.7)
+theme_override_font_sizes/font_size = 11
 
-[node name="Bg" type="ColorRect" parent="Root/Left/Sailing/WindRow/Compass"]
+[node name="Value" type="Label" parent="Root/NavPanel/V/CourseRow"]
+text = "000° N"
+theme_override_colors/font_color = Color(1, 0.667, 0, 1)
+theme_override_font_sizes/font_size = 11
+size_flags_horizontal = 3
+horizontal_alignment = 2
+
+; ==========================================
+; STATUS panel (top-right, amber border)
+; ==========================================
+[node name="StatusPanel" type="PanelContainer" parent="Root"]
+anchor_left = 1.0
 anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(0.05, 0.08, 0.1, 0.85)
+offset_left = -296.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 230.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("PanelAmber")
 
-[node name="Needle" type="ColorRect" parent="Root/Left/Sailing/WindRow/Compass"]
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -1.0
-offset_top = -15.0
-offset_right = 1.0
-offset_bottom = 0.0
-pivot_offset = Vector2(1, 15)
-color = Color(0, 1, 0.8, 1)
+[node name="V" type="VBoxContainer" parent="Root/StatusPanel"]
+theme_override_constants/separation = 4
 
-[node name="Value" type="Label" parent="Root/Left/Sailing/WindRow"]
-text = "12 KTS  N"
+[node name="Header" type="Label" parent="Root/StatusPanel/V"]
+text = "STATUS"
+theme_override_colors/font_color = Color(1, 0.85, 0.7, 0.55)
+theme_override_font_sizes/font_size = 11
+
+[node name="PurseRow" type="HBoxContainer" parent="Root/StatusPanel/V"]
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="Root/StatusPanel/V/PurseRow"]
+text = "PURSE:"
+theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 0.7)
+theme_override_font_sizes/font_size = 11
+
+[node name="Value" type="Label" parent="Root/StatusPanel/V/PurseRow"]
+text = "0 D"
+theme_override_colors/font_color = Color(1, 0.667, 0, 1)
+theme_override_font_sizes/font_size = 11
+size_flags_horizontal = 3
+horizontal_alignment = 2
+
+[node name="ZoneRow" type="HBoxContainer" parent="Root/StatusPanel/V"]
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="Root/StatusPanel/V/ZoneRow"]
+text = "ZONE:"
+theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 0.7)
+theme_override_font_sizes/font_size = 11
+
+[node name="Value" type="Label" parent="Root/StatusPanel/V/ZoneRow"]
+text = "OPEN SEA"
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+size_flags_horizontal = 3
+horizontal_alignment = 2
+
+[node name="SectorRow" type="HBoxContainer" parent="Root/StatusPanel/V"]
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="Root/StatusPanel/V/SectorRow"]
+text = "SECTOR:"
+theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 0.7)
+theme_override_font_sizes/font_size = 11
+
+[node name="Value" type="Label" parent="Root/StatusPanel/V/SectorRow"]
+text = "OPEN SEA"
 theme_override_colors/font_color = Color(0, 1, 0.8, 1)
 theme_override_font_sizes/font_size = 11
-size_flags_vertical = 4
+size_flags_horizontal = 3
+horizontal_alignment = 2
 
-[node name="TackingRow" type="HBoxContainer" parent="Root/Left/Sailing"]
+[node name="Divider" type="ColorRect" parent="Root/StatusPanel/V"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(1, 0.667, 0, 0.25)
 
-[node name="Value" type="Label" parent="Root/Left/Sailing/TackingRow"]
-text = "IN IRONS (HEADWIND)"
-theme_override_colors/font_color = Color(1, 0.2, 0.2, 1)
+[node name="WindHeader" type="Label" parent="Root/StatusPanel/V"]
+text = "WIND TELEMETRY"
+theme_override_colors/font_color = Color(1, 0.85, 0.7, 0.55)
 theme_override_font_sizes/font_size = 11
 
-[node name="Right" type="VBoxContainer" parent="Root"]
-anchor_left = 1.0
+[node name="WindRow" type="HBoxContainer" parent="Root/StatusPanel/V"]
+theme_override_constants/separation = 12
+
+[node name="Compass" type="Control" parent="Root/StatusPanel/V/WindRow"]
+custom_minimum_size = Vector2(56, 56)
+script = ExtResource("4")
+
+[node name="WindReadout" type="VBoxContainer" parent="Root/StatusPanel/V/WindRow"]
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 4
+
+[node name="WindValue" type="Label" parent="Root/StatusPanel/V/WindRow/WindReadout"]
+text = "12 KTS N"
+theme_override_colors/font_color = Color(1, 0.667, 0, 1)
+theme_override_font_sizes/font_size = 11
+
+[node name="Tacking" type="Label" parent="Root/StatusPanel/V/WindRow/WindReadout"]
+text = "GOOD REACH (OPTIMAL)"
+theme_override_colors/font_color = Color(0, 1, 0.8, 1)
+theme_override_font_sizes/font_size = 10
+
+; ==========================================
+; SAILS panel (middle-left, green border, narrow)
+; ==========================================
+[node name="SailsPanel" type="PanelContainer" parent="Root"]
+offset_left = 16.0
+offset_top = 150.0
+offset_right = 102.0
+offset_bottom = 400.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("PanelGreen")
+
+[node name="V" type="VBoxContainer" parent="Root/SailsPanel"]
+theme_override_constants/separation = 8
+
+[node name="Header" type="Label" parent="Root/SailsPanel/V"]
+text = "SAILS"
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 0.85)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+
+[node name="Body" type="HBoxContainer" parent="Root/SailsPanel/V"]
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="Track" type="Control" parent="Root/SailsPanel/V/Body"]
+custom_minimum_size = Vector2(12, 0)
+size_flags_vertical = 3
+
+[node name="Bg" type="ColorRect" parent="Root/SailsPanel/V/Body/Track"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(1, 1, 1, 0.06)
+
+[node name="Outline" type="ReferenceRect" parent="Root/SailsPanel/V/Body/Track"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+border_color = Color(0.2, 1, 0.2, 0.25)
+border_width = 1.0
+editor_only = false
+
+[node name="Fill" type="ColorRect" parent="Root/SailsPanel/V/Body/Track"]
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -260.0
-offset_top = -210.0
-offset_right = -16.0
+offset_top = 0.0
+color = Color(0.2, 1, 0.4, 1)
+
+[node name="Labels" type="VBoxContainer" parent="Root/SailsPanel/V/Body"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+alignment = 1
+theme_override_constants/separation = 0
+
+[node name="L0" type="Label" parent="Root/SailsPanel/V/Body/Labels"]
+text = "FULL"
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 0.4)
+theme_override_font_sizes/font_size = 10
+size_flags_vertical = 3
+
+[node name="L1" type="Label" parent="Root/SailsPanel/V/Body/Labels"]
+text = "3/4"
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 0.4)
+theme_override_font_sizes/font_size = 10
+size_flags_vertical = 3
+
+[node name="L2" type="Label" parent="Root/SailsPanel/V/Body/Labels"]
+text = "HALF"
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 0.4)
+theme_override_font_sizes/font_size = 10
+size_flags_vertical = 3
+
+[node name="L3" type="Label" parent="Root/SailsPanel/V/Body/Labels"]
+text = "1/4"
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 0.4)
+theme_override_font_sizes/font_size = 10
+size_flags_vertical = 3
+
+[node name="L4" type="Label" parent="Root/SailsPanel/V/Body/Labels"]
+text = "ANCH"
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 0.4)
+theme_override_font_sizes/font_size = 10
+size_flags_vertical = 3
+
+; ==========================================
+; BATTLE TELEMETRY panel (middle-left, next to sails, red border)
+; ==========================================
+[node name="BattlePanel" type="PanelContainer" parent="Root"]
+offset_left = 110.0
+offset_top = 150.0
+offset_right = 366.0
+offset_bottom = 400.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("PanelRed")
+
+[node name="V" type="VBoxContainer" parent="Root/BattlePanel"]
+theme_override_constants/separation = 4
+
+[node name="Header" type="Label" parent="Root/BattlePanel/V"]
+text = "BATTLE TELEMETRY"
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 0.7)
+theme_override_font_sizes/font_size = 11
+
+[node name="HPRow" type="HBoxContainer" parent="Root/BattlePanel/V"]
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="Root/BattlePanel/V/HPRow"]
+text = "HULL HP:"
+theme_override_colors/font_color = Color(1, 0.7, 0.7, 0.7)
+theme_override_font_sizes/font_size = 11
+
+[node name="Value" type="Label" parent="Root/BattlePanel/V/HPRow"]
+text = "100 / 100"
+theme_override_colors/font_color = Color(1, 0.333, 0.333, 1)
+theme_override_font_sizes/font_size = 11
+size_flags_horizontal = 3
+horizontal_alignment = 2
+
+[node name="HPBar" type="Control" parent="Root/BattlePanel/V"]
+custom_minimum_size = Vector2(0, 4)
+size_flags_horizontal = 3
+
+[node name="Bg" type="ColorRect" parent="Root/BattlePanel/V/HPBar"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(1, 1, 1, 0.08)
+
+[node name="Fill" type="ColorRect" parent="Root/BattlePanel/V/HPBar"]
+offset_right = 0.0
+offset_bottom = 4.0
+color = Color(1, 0.333, 0.333, 1)
+
+[node name="PortRow" type="HBoxContainer" parent="Root/BattlePanel/V"]
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="Root/BattlePanel/V/PortRow"]
+text = "PORT RE-ARM:"
+theme_override_colors/font_color = Color(1, 0.7, 0.7, 0.7)
+theme_override_font_sizes/font_size = 11
+
+[node name="Value" type="Label" parent="Root/BattlePanel/V/PortRow"]
+text = "READY"
+theme_override_colors/font_color = Color(0, 1, 0.8, 1)
+theme_override_font_sizes/font_size = 10
+size_flags_horizontal = 3
+horizontal_alignment = 2
+
+[node name="PortBar" type="Control" parent="Root/BattlePanel/V"]
+custom_minimum_size = Vector2(0, 4)
+size_flags_horizontal = 3
+
+[node name="Bg" type="ColorRect" parent="Root/BattlePanel/V/PortBar"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(1, 1, 1, 0.08)
+
+[node name="Fill" type="ColorRect" parent="Root/BattlePanel/V/PortBar"]
+offset_right = 0.0
+offset_bottom = 4.0
+color = Color(0, 1, 0.8, 1)
+
+[node name="StbdRow" type="HBoxContainer" parent="Root/BattlePanel/V"]
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="Root/BattlePanel/V/StbdRow"]
+text = "STBD RE-ARM:"
+theme_override_colors/font_color = Color(1, 0.7, 0.7, 0.7)
+theme_override_font_sizes/font_size = 11
+
+[node name="Value" type="Label" parent="Root/BattlePanel/V/StbdRow"]
+text = "READY"
+theme_override_colors/font_color = Color(0, 1, 0.8, 1)
+theme_override_font_sizes/font_size = 10
+size_flags_horizontal = 3
+horizontal_alignment = 2
+
+[node name="StbdBar" type="Control" parent="Root/BattlePanel/V"]
+custom_minimum_size = Vector2(0, 4)
+size_flags_horizontal = 3
+
+[node name="Bg" type="ColorRect" parent="Root/BattlePanel/V/StbdBar"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(1, 1, 1, 0.08)
+
+[node name="Fill" type="ColorRect" parent="Root/BattlePanel/V/StbdBar"]
+offset_right = 0.0
+offset_bottom = 4.0
+color = Color(0, 1, 0.8, 1)
+
+[node name="AmmoHeader" type="Label" parent="Root/BattlePanel/V"]
+text = "AMMUNITION (1/2/3)"
+theme_override_colors/font_color = Color(1, 0.667, 0, 0.7)
+theme_override_font_sizes/font_size = 10
+
+[node name="BallRow" type="HBoxContainer" parent="Root/BattlePanel/V"]
+theme_override_constants/separation = 8
+
+[node name="Name" type="Label" parent="Root/BattlePanel/V/BallRow"]
+text = "> BALL (180m):"
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+
+[node name="Value" type="Label" parent="Root/BattlePanel/V/BallRow"]
+text = "0"
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+size_flags_horizontal = 3
+horizontal_alignment = 2
+
+[node name="ChainRow" type="HBoxContainer" parent="Root/BattlePanel/V"]
+theme_override_constants/separation = 8
+
+[node name="Name" type="Label" parent="Root/BattlePanel/V/ChainRow"]
+text = "  CHAIN (100m):"
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 0.9)
+theme_override_font_sizes/font_size = 11
+
+[node name="Value" type="Label" parent="Root/BattlePanel/V/ChainRow"]
+text = "0"
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 0.9)
+theme_override_font_sizes/font_size = 11
+size_flags_horizontal = 3
+horizontal_alignment = 2
+
+[node name="GrapeRow" type="HBoxContainer" parent="Root/BattlePanel/V"]
+theme_override_constants/separation = 8
+
+[node name="Name" type="Label" parent="Root/BattlePanel/V/GrapeRow"]
+text = "  GRAPE (60m):"
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 0.9)
+theme_override_font_sizes/font_size = 11
+
+[node name="Value" type="Label" parent="Root/BattlePanel/V/GrapeRow"]
+text = "0"
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 0.9)
+theme_override_font_sizes/font_size = 11
+size_flags_horizontal = 3
+horizontal_alignment = 2
+
+; ==========================================
+; CONTROLS cheatsheet (bottom-left)
+; ==========================================
+[node name="ControlsPanel" type="PanelContainer" parent="Root"]
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -132.0
+offset_right = 296.0
 offset_bottom = -16.0
-theme_override_constants/separation = 3
+mouse_filter = 2
+theme_override_styles/panel = SubResource("PanelControls")
 
-[node name="Combat" type="VBoxContainer" parent="Root/Right"]
-theme_override_constants/separation = 3
-
-[node name="PortReloadRow" type="VBoxContainer" parent="Root/Right/Combat"]
+[node name="V" type="VBoxContainer" parent="Root/ControlsPanel"]
 theme_override_constants/separation = 1
 
-[node name="Header" type="HBoxContainer" parent="Root/Right/Combat/PortReloadRow"]
-
-[node name="Label" type="Label" parent="Root/Right/Combat/PortReloadRow/Header"]
-text = "PORT BROADSIDE"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_font_sizes/font_size = 10
-size_flags_horizontal = 3
-
-[node name="Value" type="Label" parent="Root/Right/Combat/PortReloadRow"]
-text = "READY"
-theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
-theme_override_font_sizes/font_size = 11
-
-[node name="Bar" type="Control" parent="Root/Right/Combat/PortReloadRow"]
-custom_minimum_size = Vector2(0, 8)
-size_flags_horizontal = 3
-
-[node name="Bg" type="ColorRect" parent="Root/Right/Combat/PortReloadRow/Bar"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(0.05, 0.08, 0.05, 0.85)
-
-[node name="Fill" type="ColorRect" parent="Root/Right/Combat/PortReloadRow/Bar"]
-offset_right = 220.0
-offset_bottom = 8.0
-color = Color(0.2, 1, 0.4, 1)
-
-[node name="StbdReloadRow" type="VBoxContainer" parent="Root/Right/Combat"]
-theme_override_constants/separation = 1
-
-[node name="Header" type="HBoxContainer" parent="Root/Right/Combat/StbdReloadRow"]
-
-[node name="Label" type="Label" parent="Root/Right/Combat/StbdReloadRow/Header"]
-text = "STBD BROADSIDE"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_font_sizes/font_size = 10
-size_flags_horizontal = 3
-
-[node name="Value" type="Label" parent="Root/Right/Combat/StbdReloadRow"]
-text = "READY"
-theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
-theme_override_font_sizes/font_size = 11
-
-[node name="Bar" type="Control" parent="Root/Right/Combat/StbdReloadRow"]
-custom_minimum_size = Vector2(0, 8)
-size_flags_horizontal = 3
-
-[node name="Bg" type="ColorRect" parent="Root/Right/Combat/StbdReloadRow/Bar"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(0.05, 0.08, 0.05, 0.85)
-
-[node name="Fill" type="ColorRect" parent="Root/Right/Combat/StbdReloadRow/Bar"]
-offset_right = 220.0
-offset_bottom = 8.0
-color = Color(0.2, 1, 0.4, 1)
-
-[node name="AmmoBox" type="VBoxContainer" parent="Root/Right/Combat"]
-theme_override_constants/separation = 1
-
-[node name="Header" type="Label" parent="Root/Right/Combat/AmmoBox"]
-text = "AMMUNITION"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+[node name="L1" type="Label" parent="Root/ControlsPanel/V"]
+text = "SAILS: [W] RAISE / [S] LOWER"
+theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
 theme_override_font_sizes/font_size = 10
 
-[node name="BallRow" type="HBoxContainer" parent="Root/Right/Combat/AmmoBox"]
+[node name="L2" type="Label" parent="Root/ControlsPanel/V"]
+text = "STEER: [A] PORT / [D] STARBOARD"
+theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
+theme_override_font_sizes/font_size = 10
 
-[node name="Name" type="Label" parent="Root/Right/Combat/AmmoBox/BallRow"]
-text = "> BALL  (180m)"
-theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
-theme_override_font_sizes/font_size = 11
-size_flags_horizontal = 3
+[node name="L3" type="Label" parent="Root/ControlsPanel/V"]
+text = "CAMERA: [DRAG MOUSE] TO ORBIT LOOK"
+theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
+theme_override_font_sizes/font_size = 10
 
-[node name="Value" type="Label" parent="Root/Right/Combat/AmmoBox/BallRow"]
-text = "10"
-theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
-theme_override_font_sizes/font_size = 11
+[node name="L4" type="Label" parent="Root/ControlsPanel/V"]
+text = "COMBAT: [Q] FIRE PORT / [E] FIRE STBD"
+theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
+theme_override_font_sizes/font_size = 10
 
-[node name="ChainRow" type="HBoxContainer" parent="Root/Right/Combat/AmmoBox"]
+[node name="L5" type="Label" parent="Root/ControlsPanel/V"]
+text = "INVENTORY: [I] VIEW HOLD MANIFEST"
+theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
+theme_override_font_sizes/font_size = 10
 
-[node name="Name" type="Label" parent="Root/Right/Combat/AmmoBox/ChainRow"]
-text = "  CHAIN (100m)"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_font_sizes/font_size = 11
-size_flags_horizontal = 3
+[node name="L6" type="Label" parent="Root/ControlsPanel/V"]
+text = "MAP: [M] SECTOR CHART     DOCK: [F] AT PORT"
+theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
+theme_override_font_sizes/font_size = 10
 
-[node name="Value" type="Label" parent="Root/Right/Combat/AmmoBox/ChainRow"]
-text = "0"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_font_sizes/font_size = 11
-
-[node name="GrapeRow" type="HBoxContainer" parent="Root/Right/Combat/AmmoBox"]
-
-[node name="Name" type="Label" parent="Root/Right/Combat/AmmoBox/GrapeRow"]
-text = "  GRAPE  (60m)"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_font_sizes/font_size = 11
-size_flags_horizontal = 3
-
-[node name="Value" type="Label" parent="Root/Right/Combat/AmmoBox/GrapeRow"]
-text = "0"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
-theme_override_font_sizes/font_size = 11
-
-[node name="Alert" type="Panel" parent="Root"]
+; ==========================================
+; Alert banner (top-centre)
+; ==========================================
+[node name="Alert" type="PanelContainer" parent="Root"]
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -180.0
 offset_top = 18.0
 offset_right = 180.0
-offset_bottom = 48.0
+offset_bottom = 52.0
 mouse_filter = 2
+theme_override_styles/panel = SubResource("AlertPanel")
 
 [node name="Label" type="Label" parent="Root/Alert"]
-anchor_right = 1.0
-anchor_bottom = 1.0
 horizontal_alignment = 1
 vertical_alignment = 1
 text = ""
@@ -333,29 +598,27 @@ theme_override_font_sizes/font_size = 13
 
 [node name="Timer" type="Timer" parent="Root/Alert"]
 
-[node name="Target" type="Panel" parent="Root"]
+; ==========================================
+; Target panel (top-centre below alert)
+; ==========================================
+[node name="Target" type="PanelContainer" parent="Root"]
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -120.0
+offset_left = -130.0
 offset_top = 72.0
-offset_right = 120.0
-offset_bottom = 128.0
+offset_right = 130.0
+offset_bottom = 142.0
 mouse_filter = 2
-
-[node name="Border" type="ColorRect" parent="Root/Target"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(1, 0.333333, 0.333333, 0.18)
-mouse_filter = 2
+theme_override_styles/panel = SubResource("TargetPanel")
 
 [node name="V" type="VBoxContainer" parent="Root/Target"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = 6.0
-offset_right = -8.0
-offset_bottom = -6.0
-theme_override_constants/separation = 2
+theme_override_constants/separation = 4
+
+[node name="Header" type="Label" parent="Root/Target/V"]
+text = "< TARGET ENGAGED >"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 0.8)
+theme_override_font_sizes/font_size = 10
 
 [node name="Name" type="Label" parent="Root/Target/V"]
 text = "PIRATE RAIDER"
@@ -364,7 +627,7 @@ theme_override_colors/font_color = Color(1, 0.333333, 0.333333, 1)
 theme_override_font_sizes/font_size = 12
 
 [node name="HPRow" type="VBoxContainer" parent="Root/Target/V"]
-theme_override_constants/separation = 1
+theme_override_constants/separation = 2
 
 [node name="Value" type="Label" parent="Root/Target/V/HPRow"]
 text = "100%"
@@ -373,47 +636,56 @@ theme_override_colors/font_color = Color(1, 0.333333, 0.333333, 1)
 theme_override_font_sizes/font_size = 11
 
 [node name="Bar" type="Control" parent="Root/Target/V/HPRow"]
-custom_minimum_size = Vector2(0, 7)
+custom_minimum_size = Vector2(0, 4)
 
 [node name="Bg" type="ColorRect" parent="Root/Target/V/HPRow/Bar"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.05, 0.08, 0.05, 0.85)
+color = Color(1, 1, 1, 0.08)
 
 [node name="Fill" type="ColorRect" parent="Root/Target/V/HPRow/Bar"]
-offset_right = 200.0
-offset_bottom = 7.0
+offset_right = 0.0
+offset_bottom = 4.0
 color = Color(1, 0.333333, 0.333333, 1)
 
+; ==========================================
+; Bottom-centre dock prompt
+; ==========================================
 [node name="DockPrompt" type="Label" parent="Root"]
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -180.0
-offset_top = -56.0
-offset_right = 180.0
-offset_bottom = -32.0
+offset_left = -200.0
+offset_top = -160.0
+offset_right = 200.0
+offset_bottom = -136.0
 horizontal_alignment = 1
 vertical_alignment = 1
 text = "[ F ] DOCK AT PORT"
-theme_override_colors/font_color = Color(1, 0.8, 0, 1)
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
 theme_override_font_sizes/font_size = 13
 
+; ==========================================
+; Bottom-right clock
+; ==========================================
 [node name="Clock" type="Label" parent="Root"]
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -140.0
+offset_left = -160.0
 offset_top = -28.0
 offset_right = -16.0
 offset_bottom = -12.0
 horizontal_alignment = 2
 text = "DAY 1   08:00"
-theme_override_colors/font_color = Color(0, 1, 0.8, 1)
+theme_override_colors/font_color = Color(0, 1, 0.8, 0.85)
 theme_override_font_sizes/font_size = 11
 
+; ==========================================
+; Inventory modal (unchanged structure)
+; ==========================================
 [node name="Inventory" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
