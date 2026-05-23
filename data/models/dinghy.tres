@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="LineModel" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/line_model.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+; Dinghy — ported verbatim from FATHOM.EXE main:models3d.js (the `dinghy` entry).
+; 17 vertices, ~25 edges. Hull + mast + sail with central "billow" vertex.
+;
+; AXIS CONVERSION: JS is left-handed with +Z forward (north); Godot is
+; right-handed with -Z forward. Every JS vertex (x, y, z) was Z-flipped to
+; (x, y, -z) at port time. JS forward (+Z) → Godot forward (-Z). Don't
+; double-flip in the renderer.
+;
+; sailDeformations (sail level shaping) are intentionally NOT ported in this
+; pass — sail is baked at full-billow. Future ticket: animate sail vertices
+; from sail_level. The billow vertex (#16) sits forward of the mast in Godot
+; coords, which is the desired "sail catches wind from behind" shape.
+
+vertices = PackedVector3Array(
+	0, 1.5, -3,
+	0, 0.2, -3,
+	-1.2, 1.2, 0,
+	-0.8, 0.2, 0,
+	1.2, 1.2, 0,
+	0.8, 0.2, 0,
+	-0.9, 1.2, 2.5,
+	-0.6, 0.2, 2.5,
+	0.9, 1.2, 2.5,
+	0.6, 0.2, 2.5,
+	0, 1.2, -0.5,
+	0, 6.0, -0.5,
+	-1.8, 2.0, -0.3,
+	1.8, 2.0, -0.3,
+	-1.2, 5.2, -0.5,
+	1.2, 5.2, -0.5,
+	0, 3.6, -1.2
+)
+
+; Edges — flat (i0, i1) pairs.
+; Hull (pentagonal cross-section: bow / port-mid / stbd-mid / port-stern / stbd-stern):
+;   bow→port-mid, bow→stbd-mid, mids→stern, stern transoms.
+; Mast: single vertical line.
+; Sail: yard at top, boom at bottom, side leech, then ribbing radiating from
+; the billow centre (16) — this is what gives the "billow" feel from any angle.
+edges = PackedInt32Array(
+	0, 1, 0, 2, 1, 3, 2, 3,
+	0, 4, 1, 5, 4, 5,
+	2, 6, 3, 7, 6, 7,
+	4, 8, 5, 9, 8, 9,
+	6, 8, 7, 9,
+	10, 11,
+	11, 14, 11, 15,
+	14, 15,
+	12, 13,
+	14, 12, 15, 13,
+	11, 16, 16, 10,
+	14, 16, 15, 16, 12, 16, 13, 16
+)
+
+color = Color(0.2, 1, 0.4, 1)
