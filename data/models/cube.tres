@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="LineModel" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/line_model.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+; Cube — ported from FATHOM.EXE main:models3d.js (the `cube` entry). Used for
+; floating crate debris on enemy sink. 8 vertices, 14 edges (12 box edges +
+; 2 cross-detail diagonals so crates read as wooden boxes, not blank cubes).
+;
+; AXIS CONVERSION: JS is left-handed with +Z forward (north); Godot is
+; right-handed with -Z forward. Each JS vertex (x, y, z) was Z-flipped to
+; (x, y, -z) at port time. The cube is symmetric on Z, so coords look identical
+; to the JS source — the flip still gets applied for consistency with the rest
+; of the model library and so future tweaks don't drift.
+
+vertices = PackedVector3Array(
+	-1, -1, 1,
+	1, -1, 1,
+	1, 1, 1,
+	-1, 1, 1,
+	-1, -1, -1,
+	1, -1, -1,
+	1, 1, -1,
+	-1, 1, -1
+)
+
+; Edges — flat (i0, i1) pairs.
+; Back face (z=+1 in original; z=-1 here pre-flip is now z=+1 after — but the
+; face groupings stay the same as JS): 0-1-2-3.
+; Front face: 4-5-6-7.
+; Connecting edges: 0-4, 1-5, 2-6, 3-7.
+; Cross details (crate diagonals): 0-2, 4-6.
+edges = PackedInt32Array(
+	0, 1, 1, 2, 2, 3, 3, 0,
+	4, 5, 5, 6, 6, 7, 7, 4,
+	0, 4, 1, 5, 2, 6, 3, 7,
+	0, 2, 4, 6
+)
+
+; Brown / wood colour — matches JS render colour `#ffaa66` (warm orange-brown).
+color = Color(1.0, 0.667, 0.4, 1.0)
