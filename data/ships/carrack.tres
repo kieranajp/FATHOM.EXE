@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ShipClass" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ship_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "carrack"
+display_name = "Carrack"
+cost = 3500
+max_health = 450.0
+base_max_speed = 3.8
+max_cargo = 550
+firepower = 3
+hit_radius = 9.5
+hit_height = 13.0

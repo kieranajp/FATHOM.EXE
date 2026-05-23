@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EconomyTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/economy_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+wave_amplitude = 0.15
+wave_frequency = 0.5
+producer_buy_mult = 0.6
+producer_sell_mult = 0.4
+consumer_buy_mult = 1.8
+consumer_sell_mult = 1.4
+default_buy_mult = 1.0
+default_sell_mult = 0.75
+ammo_ball_buy = 2
+ammo_ball_sell = 0
+ammo_chain_buy = 5
+ammo_chain_sell = 0
+ammo_grape_buy = 8
+ammo_grape_sell = 0
+commodity_weight = 10.0
+ammo_weight = 0.2
+ship_tradein_fraction = 0.7

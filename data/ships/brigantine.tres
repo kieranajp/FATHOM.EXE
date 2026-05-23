@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ShipClass" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ship_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "brigantine"
+display_name = "Brigantine"
+cost = 1400
+max_health = 220.0
+base_max_speed = 6.0
+max_cargo = 300
+firepower = 3
+hit_radius = 7.5
+hit_height = 10.0
