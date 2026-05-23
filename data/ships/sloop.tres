@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ShipClass" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ship_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sloop"
+display_name = "Sloop"
+cost = 500
+max_health = 150.0
+base_max_speed = 7.8
+max_cargo = 120
+firepower = 2
+hit_radius = 6.0
+hit_height = 8.0

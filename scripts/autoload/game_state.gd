@@ -9,6 +9,9 @@ var current_port_id: String = ""                 # empty when at sea
 var travel_count: int = 0
 var visited_archipelagos: Array[String] = []
 var port_ship_stock: Dictionary = {}             # port_id -> { class_id: int }
+# Per-port ammunition stock, mutated as the player trades. Generated lazily
+# from a deterministic port-seed on first dock. Persisted alongside ship stock.
+var port_ammo_stock: Dictionary = {}             # port_id -> { "ball": int, "chain": int, "grape": int }
 var factions: Dictionary = {}                    # faction_id -> FactionState (post-parity)
 var crew: CrewState                              # post-parity
 var officers: Array[Officer] = []                # post-parity
@@ -34,6 +37,7 @@ func reset_new_game() -> void:
 	travel_count = 0
 	visited_archipelagos = []
 	port_ship_stock = {}
+	port_ammo_stock = {}
 	factions = {}
 	crew = CrewState.new()
 	officers = []

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Commodity" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/commodity.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wood"
+display_name = "Wood"
+short_code = "WOD"
+base_price = 12
+contraband_in = Array[String]([])

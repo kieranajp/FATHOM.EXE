@@ -1,9 +1,10 @@
-# DockMenu — placeholder for the docked-at-port UI.
+# DockMenu — root docked-at-port UI.
 #
-# Owns four buttons: Market / Tavern / Shipyard / Undock.
-# Market/Tavern/Shipyard are stubs for T04/T05; they emit a HUD message and do
-# nothing else. Undock emits port_undocked — Main listens and swaps the scene
-# back to OpenSea (and grants the new PlayerShip its collision immunity).
+# Owns four buttons: Market / Tavern / Shipyard / Undock. Each non-Undock
+# button mounts its sub-screen as a sibling under Port.tscn's CanvasLayer
+# (the DockMenu hides itself and reappears when the sub-screen frees).
+# Undock emits port_undocked — Main listens and swaps the scene back to
+# OpenSea (and grants the new PlayerShip its collision immunity).
 extends Control
 
 const PORT_DIR := "res://data/ports/"
@@ -48,20 +49,27 @@ func _load_current_port() -> PortDef:
 
 
 func _on_market_pressed() -> void:
-	EventBus.hud_message.emit("Market coming soon (T04)", "info")
+	_open_sub_screen("res://scenes/ui/Market.tscn")
 
 
 func _on_tavern_pressed() -> void:
-	var tavern_scene := load("res://scenes/ui/Tavern.tscn") as PackedScene
-	if tavern_scene != null:
-		var tavern_inst = tavern_scene.instantiate()
-		get_parent().add_child(tavern_inst)
-		self.visible = false
-		tavern_inst.tree_exited.connect(func(): self.visible = true)
+	_open_sub_screen("res://scenes/ui/Tavern.tscn")
 
 
 func _on_shipyard_pressed() -> void:
-	EventBus.hud_message.emit("Shipyard coming soon (T04)", "info")
+	_open_sub_screen("res://scenes/ui/Shipyard.tscn")
+
+
+# Mount a docked sub-screen (Market/Tavern/Shipyard) inside Port.tscn, hide
+# the DockMenu, and show it again when the screen frees itself.
+func _open_sub_screen(scene_path: String) -> void:
+	var scene := load(scene_path) as PackedScene
+	if scene == null:
+		return
+	var inst = scene.instantiate()
+	get_parent().add_child(inst)
+	self.visible = false
+	inst.tree_exited.connect(func(): self.visible = true)
 
 
 func _on_undock_pressed() -> void:

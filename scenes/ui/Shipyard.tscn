@@ -1,11 +1,136 @@
-[gd_scene load_steps=1 format=3]
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/shipyard.gd" id="1"]
 
 [node name="Shipyard" type="Control"]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
 
-[node name="TODO" type="Label" parent="."]
-offset_right = 200.0
-offset_bottom = 40.0
-text = "TODO: T06 shipyard UI"
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -260.0
+offset_right = 400.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="V" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Panel/V"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.733333, 0, 1)
+theme_override_font_sizes/font_size = 22
+text = "ROYAL DOCKYARD"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Panel/V"]
+modulate = Color(1, 1, 1, 0.7)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Commission a vessel. Trade-in scaled by hull condition."
+horizontal_alignment = 1
+
+[node name="HeaderRow" type="HBoxContainer" parent="Panel/V"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HShip" type="Label" parent="Panel/V/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+theme_override_colors/font_color = Color(1, 0.733333, 0, 1)
+theme_override_font_sizes/font_size = 11
+text = "VESSEL"
+
+[node name="HSpeed" type="Label" parent="Panel/V/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.733333, 0, 1)
+theme_override_font_sizes/font_size = 11
+text = "SPD"
+horizontal_alignment = 1
+
+[node name="HCargo" type="Label" parent="Panel/V/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.733333, 0, 1)
+theme_override_font_sizes/font_size = 11
+text = "CARGO"
+horizontal_alignment = 1
+
+[node name="HHull" type="Label" parent="Panel/V/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.733333, 0, 1)
+theme_override_font_sizes/font_size = 11
+text = "HULL"
+horizontal_alignment = 1
+
+[node name="HGuns" type="Label" parent="Panel/V/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.733333, 0, 1)
+theme_override_font_sizes/font_size = 11
+text = "GUNS"
+horizontal_alignment = 1
+
+[node name="HCost" type="Label" parent="Panel/V/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+theme_override_colors/font_color = Color(1, 0.733333, 0, 1)
+theme_override_font_sizes/font_size = 11
+text = "COMMISSION"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/V"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 280)
+
+[node name="Rows" type="VBoxContainer" parent="Panel/V/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Console" type="PanelContainer" parent="Panel/V"]
+layout_mode = 2
+
+[node name="Message" type="Label" parent="Panel/V/Console"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 1, 0.8, 1)
+theme_override_font_sizes/font_size = 11
+text = "> ROYAL DOCKYARD READY. VESSEL COMMISSIONING SYSTEMS ONLINE..."
+
+[node name="Footer" type="HBoxContainer" parent="Panel/V"]
+layout_mode = 2
+
+[node name="Hull" type="Label" parent="Panel/V/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.2, 1, 0.2, 1)
+text = "HULL: DINGHY"
+
+[node name="Gold" type="Label" parent="Panel/V/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.733333, 0, 1)
+text = "GOLD: 150 D"
+horizontal_alignment = 1
+
+[node name="Leave" type="Button" parent="Panel/V/Footer"]
+layout_mode = 2
+text = "[ESC] Return to Dock"

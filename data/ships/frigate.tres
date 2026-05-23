@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ShipClass" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ship_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "frigate"
+display_name = "Frigate"
+cost = 2000
+max_health = 300.0
+base_max_speed = 6.8
+max_cargo = 180
+firepower = 4
+hit_radius = 8.0
+hit_height = 11.0
