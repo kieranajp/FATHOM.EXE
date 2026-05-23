@@ -20,13 +20,21 @@ The rebuild is executed by parallel agents working in worktrees, each picking up
 
 ## Running
 
-After foundations land:
+Editor:
 
 ```sh
 godot --path .
 ```
 
 Or open `project.godot` in the Godot editor.
+
+Headless boot check (must exit 0 with no errors):
+
+```sh
+godot --path . --headless --quit
+```
+
+In-editor: press F5 to run; Escape exits the smoke scene.
 
 ## Parity goal
 
