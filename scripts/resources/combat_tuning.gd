@@ -56,8 +56,24 @@ class_name CombatTuning extends Tuning
 @export var target_acquire_range: float = 200.0
 @export var spawn_min_distance: float = 150.0
 @export var spawn_max_distance: float = 250.0
+# Legacy uniform spawn count (pre-T48). Kept as a fallback in case a future
+# spawner path bypasses the tier-aware helper; the ambient initial-spawn path
+# now goes through spawn_count_for_tier() and ignores these.
 @export var spawn_initial_count_min: int = 1
 @export var spawn_initial_count_max: int = 2
+
+# --- T48: tier-aware ambient spawn counts. ---
+# Mirror of the JS difficulty curve (game.js:2451-2475):
+#   tier 1 (Pirate's Cradle):  40% chance of 1 pirate, else calm
+#   tier 2 (Spanish Main):     exactly 1 pirate
+#   tier 3 (Smuggler's Run):   2..3 pirates uniform
+# Only the ambient initial-spawn path consults these — the T39 intercept path
+# (World.pending_intercept_count) is explicit and unaffected.
+@export_range(0.0, 1.0) var low_tier_spawn_chance: float = 0.4
+@export var low_tier_max_count: int = 1
+@export var medium_tier_count: int = 1
+@export var high_tier_min_count: int = 2
+@export var high_tier_max_count: int = 3
 
 # --- No-fire zone. ---
 @export var no_fire_zone_radius: float = 120.0
@@ -83,3 +99,21 @@ class_name CombatTuning extends Tuning
 @export var splash_max_radius_jitter: float = 1.5
 @export var splash_life: float = 0.55
 @export var debris_count_on_hit: int = 8
+
+
+# T48 — Map an ArchipelagoDef.risk_tier (1/2/3) to an ambient spawn count.
+# Non-deterministic by design: tier 1 and tier 3 roll RNG. Tests should call
+# this many times and assert distribution shape, or assert on the underlying
+# fields (low_tier_spawn_chance, high_tier_min/max_count) directly. Out-of-
+# range tiers fall back to 1 so a misconfigured archipelago still ticks the
+# ambient threat without going silent or going apocalyptic.
+func spawn_count_for_tier(tier: int) -> int:
+	match tier:
+		1:
+			return low_tier_max_count if randf() < low_tier_spawn_chance else 0
+		2:
+			return medium_tier_count
+		3:
+			return randi_range(high_tier_min_count, high_tier_max_count)
+		_:
+			return 1
