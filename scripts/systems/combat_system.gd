@@ -37,9 +37,9 @@ var _next_debris_id: int = 1
 
 func _ready() -> void:
 	if tuning == null:
-		tuning = load("res://data/tuning/combat.tres") as CombatTuning
+		tuning = Tunings.combat
 	if visuals_tuning == null:
-		visuals_tuning = load("res://data/tuning/combat_visuals.tres") as CombatVisualsTuning
+		visuals_tuning = Tunings.combat_visuals
 
 	if player_path != NodePath(""):
 		_player = get_node_or_null(player_path) as PlayerShip
@@ -212,27 +212,34 @@ func _next_id() -> int:
 # --- Splash + debris (one-line wrappers; FX is its own ticket). ---
 func _spawn_splash(x: float, z: float) -> void:
 	var max_r: float = tuning.splash_max_radius_base + randf() * tuning.splash_max_radius_jitter
-	World.splashes.append({
-		"x": x, "z": z, "r": 0.2, "max_r": max_r, "life": tuning.splash_life,
-	})
+	var s := Splash.new()
+	s.x = x
+	s.z = z
+	s.r = 0.2
+	s.max_r = max_r
+	s.life = tuning.splash_life
+	World.splashes.append(s)
 
 
 func _spawn_debris(x: float, y: float, z: float) -> void:
 	for _i in tuning.debris_count_on_hit:
-		World.debris.append({
-			"id": _next_id(),
-			"x": x, "y": y, "z": z,
-			"vx": (randf() - 0.5) * 4.0,
-			"vy": 1.0 + randf() * 3.0,
-			"vz": (randf() - 0.5) * 4.0,
-			"life": 1.5 + randf() * 0.5,
-			"yaw": randf() * TAU,
-			"pitch": 0.0, "roll": 0.0,
-			"rot_speed_yaw": (randf() - 0.5) * 4.0,
-			"rot_speed_pitch": (randf() - 0.5) * 4.0,
-			"rot_speed_roll": (randf() - 0.5) * 4.0,
-			"is_spark": true,
-		})
+		var d := Debris.new()
+		d.id = _next_id()
+		d.x = x
+		d.y = y
+		d.z = z
+		d.vx = (randf() - 0.5) * 4.0
+		d.vy = 1.0 + randf() * 3.0
+		d.vz = (randf() - 0.5) * 4.0
+		d.life = 1.5 + randf() * 0.5
+		d.yaw = randf() * TAU
+		d.pitch = 0.0
+		d.roll = 0.0
+		d.rot_speed_yaw = (randf() - 0.5) * 4.0
+		d.rot_speed_pitch = (randf() - 0.5) * 4.0
+		d.rot_speed_roll = (randf() - 0.5) * 4.0
+		d.is_spark = true
+		World.debris.append(d)
 
 
 func _tick_splashes(delta: float) -> void:
@@ -246,10 +253,10 @@ func _tick_splashes(delta: float) -> void:
 
 
 func _tick_debris(delta: float) -> void:
-	var keep: Array = []
+	var keep: Array[Debris] = []
 	for d in World.debris:
 		d.life -= delta
-		if bool(d.get("is_spark", false)):
+		if d.is_spark:
 			d.x += d.vx * delta
 			d.y += d.vy * delta
 			d.z += d.vz * delta
@@ -263,9 +270,9 @@ func _tick_debris(delta: float) -> void:
 			d.z += d.vz * delta
 			if _ocean != null:
 				d.y = _ocean.get_wave_height(d.x, d.z)
-			d.yaw = float(d.get("yaw", 0.0)) + float(d.get("rot_speed_yaw", 0.0)) * delta
-			d.pitch = float(d.get("pitch", 0.0)) + float(d.get("rot_speed_pitch", 0.0)) * delta
-			d.roll = float(d.get("roll", 0.0)) + float(d.get("rot_speed_roll", 0.0)) * delta
+			d.yaw = d.yaw + d.rot_speed_yaw * delta
+			d.pitch = d.pitch + d.rot_speed_pitch * delta
+			d.roll = d.roll + d.rot_speed_roll * delta
 		if d.life > 0.0:
 			keep.append(d)
 	World.debris = keep
@@ -408,23 +415,23 @@ func _spawn_crates(pos: Vector3) -> void:
 		var angle: float = randf() * TAU
 		var dist: float = randf() * visuals_tuning.crate_spawn_radius
 		var outward_speed: float = visuals_tuning.crate_initial_outward_speed
-		World.debris.append({
-			"id": _next_id(),
-			"x": pos.x + sin(angle) * dist,
-			"y": pos.y,
-			"z": pos.z + cos(angle) * dist,
-			"vx": sin(angle) * outward_speed,
-			"vy": 0.0,
-			"vz": cos(angle) * outward_speed,
-			"life": visuals_tuning.crate_lifetime_seconds,
-			"yaw": randf() * TAU,
-			"pitch": randf() * TAU,
-			"roll": randf() * TAU,
-			"rot_speed_yaw": (randf() - 0.5) * 2.0 * visuals_tuning.crate_rot_speed_max,
-			"rot_speed_pitch": (randf() - 0.5) * 2.0 * visuals_tuning.crate_rot_speed_max,
-			"rot_speed_roll": (randf() - 0.5) * 2.0 * visuals_tuning.crate_rot_speed_max,
-			"is_spark": false,
-		})
+		var d := Debris.new()
+		d.id = _next_id()
+		d.x = pos.x + sin(angle) * dist
+		d.y = pos.y
+		d.z = pos.z + cos(angle) * dist
+		d.vx = sin(angle) * outward_speed
+		d.vy = 0.0
+		d.vz = cos(angle) * outward_speed
+		d.life = visuals_tuning.crate_lifetime_seconds
+		d.yaw = randf() * TAU
+		d.pitch = randf() * TAU
+		d.roll = randf() * TAU
+		d.rot_speed_yaw = (randf() - 0.5) * 2.0 * visuals_tuning.crate_rot_speed_max
+		d.rot_speed_pitch = (randf() - 0.5) * 2.0 * visuals_tuning.crate_rot_speed_max
+		d.rot_speed_roll = (randf() - 0.5) * 2.0 * visuals_tuning.crate_rot_speed_max
+		d.is_spark = false
+		World.debris.append(d)
 
 
 # --- Public API. ---

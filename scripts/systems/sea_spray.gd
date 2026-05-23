@@ -25,7 +25,7 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	if tuning == null:
-		tuning = load("res://data/tuning/world.tres") as WorldTuning
+		tuning = Tunings.world
 
 	if ocean_path != NodePath(""):
 		var on := get_node_or_null(ocean_path)

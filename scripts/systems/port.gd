@@ -21,7 +21,7 @@ func _ready() -> void:
 		return
 
 	if tuning == null:
-		tuning = load("res://data/tuning/dock.tres") as DockTuning
+		tuning = Tunings.dock
 
 	add_to_group("port")
 	global_position = port_def.position

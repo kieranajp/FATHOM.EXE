@@ -25,8 +25,8 @@ var _dev_menu_instance: Node = null
 
 
 func _ready() -> void:
-	_dock_tuning = load("res://data/tuning/dock.tres") as DockTuning
-	_respawn_tuning = load("res://data/tuning/respawn.tres") as RespawnTuning
+	_dock_tuning = Tunings.dock
+	_respawn_tuning = Tunings.respawn
 	# Boot path: resume a saved game if one exists, otherwise fresh start.
 	# Persistence.load() applies onto GameState directly; on corruption or
 	# version mismatch it emits hud_message and falls back to a new game.

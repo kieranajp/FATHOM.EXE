@@ -54,7 +54,7 @@ const _LABEL_LINE_HEIGHT: float = 14.0     # vertical spacing between AIM/RANGE/
 
 func _ready() -> void:
 	if tuning == null:
-		tuning = load("res://data/tuning/combat.tres") as CombatTuning
+		tuning = Tunings.combat
 	if player_path != NodePath(""):
 		_player = get_node_or_null(player_path) as PlayerShip
 
@@ -230,7 +230,7 @@ func _rebuild(aim: Dictionary) -> void:
 	if cam == null:
 		_mesh.clear_surfaces()
 		return
-	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
+	var render_tuning := Tunings.render
 	var thickness: float = 0.04
 	if render_tuning != null:
 		thickness = render_tuning.line_thickness_world

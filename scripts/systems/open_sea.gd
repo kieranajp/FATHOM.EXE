@@ -19,7 +19,7 @@ var _player: PlayerShip
 
 func _ready() -> void:
 	if tuning == null:
-		tuning = load("res://data/tuning/dock.tres") as DockTuning
+		tuning = Tunings.dock
 
 	_ports_root = Node3D.new()
 	_ports_root.name = "Ports"

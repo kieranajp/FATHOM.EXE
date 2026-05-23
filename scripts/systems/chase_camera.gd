@@ -27,7 +27,7 @@ var _is_dragging: bool = false
 
 func _ready() -> void:
 	if tuning == null:
-		tuning = load("res://data/tuning/camera.tres") as CameraTuning
+		tuning = Tunings.camera
 	if player_path != NodePath(""):
 		var node := get_node_or_null(player_path)
 		if node is PlayerShip:

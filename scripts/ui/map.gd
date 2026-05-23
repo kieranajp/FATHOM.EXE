@@ -63,8 +63,8 @@ static func pick_archipelago(point: Vector2, archs: Array) -> String:
 
 
 func _ready() -> void:
-	_tuning = load("res://data/tuning/map.tres") as MapTuning
-	_travel_tuning = load("res://data/tuning/travel.tres") as TravelTuning
+	_tuning = Tunings.map
+	_travel_tuning = Tunings.travel
 
 	# Pre-load archipelago data
 	for arch_id in KNOWN_ARCHIPELAGO_IDS:

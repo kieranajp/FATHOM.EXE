@@ -108,7 +108,7 @@ var _no_fire_banner: Label
 
 func _ready() -> void:
 	if tuning == null:
-		tuning = load("res://data/tuning/hud.tres") as HudTuning
+		tuning = Tunings.hud
 
 	# Bump UI scale uniformly. Playtest flagged the bordered-panel HUD as
 	# smaller than the JS reference; ui_scale lives on HudTuning so it can be

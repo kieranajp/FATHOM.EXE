@@ -4,9 +4,18 @@
 extends Node
 
 var enemies: Array = []        # Array[EnemyShip] (typed at use site to avoid an autoload→class dependency)
-var projectiles: Array = []    # Dictionary form for speed; schema documented on combat.gd
-var debris: Array = []
-var splashes: Array = []
+
+var projectiles: Array[Projectile] = []:
+	set(val):
+		projectiles = _ensure_projectiles(val)
+
+var debris: Array[Debris] = []:
+	set(val):
+		debris = _ensure_debris(val)
+
+var splashes: Array[Splash] = []:
+	set(val):
+		splashes = _ensure_splashes(val)
 
 # The port the player is currently within proximity of. Set by the proximity
 # tick in OpenSea (T03); null when at sea. Distinct from
@@ -61,3 +70,33 @@ func clear() -> void:
 	enforcer = null
 	pending_intercept_count = 0
 	is_in_no_fire_zone = false
+
+
+func _ensure_projectiles(val: Array) -> Array[Projectile]:
+	var out: Array[Projectile] = []
+	for item in val:
+		if item is Projectile:
+			out.append(item)
+		elif item is Dictionary:
+			out.append(Projectile.create(item))
+	return out
+
+
+func _ensure_debris(val: Array) -> Array[Debris]:
+	var out: Array[Debris] = []
+	for item in val:
+		if item is Debris:
+			out.append(item)
+		elif item is Dictionary:
+			out.append(Debris.create(item))
+	return out
+
+
+func _ensure_splashes(val: Array) -> Array[Splash]:
+	var out: Array[Splash] = []
+	for item in val:
+		if item is Splash:
+			out.append(item)
+		elif item is Dictionary:
+			out.append(Splash.create(item))
+	return out

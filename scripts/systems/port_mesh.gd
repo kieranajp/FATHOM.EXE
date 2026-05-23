@@ -31,7 +31,7 @@ static func build(port_def: PortDef) -> Node3D:
 	# scaling so the ribbon stays visible at the ~540m chase-cam range to a
 	# distant island. Without scaling the authored 0.06m ribbon subtends
 	# ~0.1px at that distance and effectively vanishes.
-	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
+	var render_tuning := Tunings.render
 	var lh_emission: float = 1.5
 	var thickness: float = 0.04
 	var ref_dist: float = 0.0

@@ -30,7 +30,7 @@ const STAR_COUNT := 100
 
 
 func _ready() -> void:
-	tuning = load("res://data/tuning/travel.tres") as TravelTuning
+	tuning = Tunings.travel
 	assert(target_archipelago != null, "Travel scene mounted without target_archipelago — main.gd must set this before add_child")
 
 	# T39: roll intercept and storm independently. Intercept takes precedence
