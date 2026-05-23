@@ -258,8 +258,19 @@ func _load_ship_class(class_id: String) -> ShipClass:
 	return load(path) as ShipClass
 
 
-# Placeholder visual: a stretched cube with the wireframe shader. Real mesh
-# geometry is T09's job — we just need *something* visible.
+# Placeholder visual: a stretched cube with bright emission. Real mesh
+# geometry + edge wireframe shader is T09's job — we just need *something*
+# visible.
+#
+# Why not the F1 wireframe shader stub? It writes EMISSION at energy 1.0,
+# which (against the bloom/AgX-tonemapped WorldEnvironment) gets crushed to
+# near-black relative to the wave grid's 1.5x emission_energy_multiplier.
+# Result: a black hull-shaped void on the cyan grid. We mirror the grid's
+# StandardMaterial3D pattern with a 1.5x multiplier so the player ship reads
+# as a coloured silhouette until T09 ships the real wireframe pass.
+#
+# `wireframe_material` is still wired through `@export` for parity with the
+# scene and as a hook for T09 — it just isn't applied to the placeholder.
 func _build_placeholder_mesh() -> void:
 	_mesh_instance = MeshInstance3D.new()
 	_mesh_instance.name = "Placeholder"
@@ -268,8 +279,16 @@ func _build_placeholder_mesh() -> void:
 	# to see waves wash around.
 	box.size = Vector3(2.0, 1.5, 5.0)
 	_mesh_instance.mesh = box
-	if wireframe_material != null:
-		_mesh_instance.material_override = wireframe_material
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	# Player faction green per ARCHITECTURE.md § "Rendering decisions".
+	var player_green := Color("#33ff33")
+	mat.albedo_color = player_green
+	mat.emission_enabled = true
+	mat.emission = player_green
+	mat.emission_energy_multiplier = 1.5
+	mat.disable_fog = true
+	_mesh_instance.material_override = mat
 	# Lift the visual so the mesh centre is around the waterline.
 	_mesh_instance.position = Vector3(0.0, 0.5, 0.0)
 	add_child(_mesh_instance)
