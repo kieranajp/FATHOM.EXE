@@ -1,5 +1,85 @@
-# CombatTuning — numbers for ammo, damage, reload, projectile life.
+# CombatTuning — numbers for ammo, damage, reload, projectile life, AI thresholds.
 # Authored in data/tuning/combat.tres; loaded by combat-side systems.
+#
+# All numeric constants used by the combat subsystem live here per ARCHITECTURE.md
+# § "Tuning". Magic numbers in scripts are a code-review bug. Values pinned to
+# the JS prototype on `main` — see game.test.js for the canonical spec.
 class_name CombatTuning extends Tuning
 
+# --- Ammo: damage, life (seconds), pellets-per-cannon. ---
 @export var ball_damage: float = 25.0
+@export var ball_life: float = 4.0
+@export var chain_damage: float = 10.0
+@export var chain_life: float = 2.2
+@export var chain_debuff_seconds: float = 5.0
+@export var grape_damage: float = 2.0
+@export var grape_life: float = 0.8
+@export var grape_pellets: int = 16
+
+# --- Reload (per side, seconds). ---
+@export var reload_seconds: float = 3.0
+@export var ai_reload_seconds: float = 4.0
+@export var ai_galleon_reload_seconds: float = 5.0
+
+# --- Projectile launch physics. ---
+@export var muzzle_velocity: float = 28.0       # player ball/chain horizontal m/s
+@export var ai_muzzle_velocity: float = 25.0    # enemy lateral m/s
+@export var gravity: float = 9.81               # m/s^2 (projectile + ballistic solver)
+@export var elev_degrees: float = 15.0          # fixed (no-aim) elevation, degrees
+@export var cannon_spread: float = 0.12         # +/- spread per cannon, radians
+@export var grape_spread: float = 0.50          # +/- pellet horizontal spread, radians
+@export var grape_vy_jitter: float = 5.0        # +/- vertical velocity jitter
+@export var grape_speed_min: float = 0.88       # speed-magnitude multiplier floor
+@export var grape_speed_max: float = 1.12       # speed-magnitude multiplier ceiling
+@export var vy_clamp_min: float = -10.0         # ballistic solver clamps
+@export var vy_clamp_max: float = 45.0
+@export var min_aim_distance: float = 5.0       # solver floor (avoid div by zero)
+
+# --- Aim mode. ---
+@export var aim_range_min: float = 30.0
+@export var aim_range_max: float = 240.0
+@export var aim_range_default: float = 120.0
+@export var aim_yaw_max: float = PI / 4.0       # +/- pi/4 cone
+@export var aim_height_min: float = -10.0
+@export var aim_height_max: float = 30.0
+@export var aim_mouse_yaw_rate: float = 0.005   # rad per pixel of mouse delta
+@export var aim_mouse_range_rate: float = 0.5   # metres per pixel
+@export var aim_mouse_height_rate: float = 0.10 # metres per pixel (shift-held)
+
+# --- Hit detection. ---
+# JS impl: dist < hit_radius && py >= sy - 1.0 && py <= sy + hit_height.
+# The 1.0 wave-trough leniency is the spec, not a tuning lever — kept here so
+# tests reference the same constant.
+@export var hit_y_below_leniency: float = 1.0
+
+# --- Target acquisition + spawning. ---
+@export var target_acquire_range: float = 200.0
+@export var spawn_min_distance: float = 150.0
+@export var spawn_max_distance: float = 250.0
+@export var spawn_initial_count_min: int = 1
+@export var spawn_initial_count_max: int = 2
+
+# --- No-fire zone. ---
+@export var no_fire_zone_radius: float = 120.0
+
+# --- Sinking. ---
+@export var sink_descent_rate: float = 2.0      # m/s while sinking
+@export var sink_despawn_y: float = -35.0       # remove after y drops below this
+
+# --- AI state-machine thresholds. ---
+@export var ai_patrol_distance: float = 300.0
+@export var ai_chase_distance: float = 100.0
+@export var ai_patrol_speed_fraction: float = 0.4
+@export var ai_chase_speed_fraction: float = 0.8
+@export var ai_orbit_speed_fraction: float = 0.7
+@export var ai_patrol_yaw_rate: float = 0.15    # rad/s drift
+@export var ai_chase_yaw_rate: float = 0.8
+@export var ai_orbit_yaw_rate: float = 1.2
+@export var ai_chain_debuff_speed_mult: float = 0.5
+@export var ai_fire_angle_tolerance: float = 0.35  # rad off ±pi/2 for fire
+
+# --- Splash / debris. ---
+@export var splash_max_radius_base: float = 3.5
+@export var splash_max_radius_jitter: float = 1.5
+@export var splash_life: float = 0.55
+@export var debris_count_on_hit: int = 8

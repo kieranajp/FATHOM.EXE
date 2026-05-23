@@ -1,10 +1,10 @@
 # World — transient scene state (enemies, projectiles, particles, debris).
 # Not persisted. Cleared on scene change.
-# Owner: stub from F1. Filled in by T04 (combat) / T05 (AI) / T07 (FX).
+# Owner: stub from F1. Filled in by T06 (combat) / T07 (HUD reads) / FX tickets.
 extends Node
 
-var enemies: Array = []        # Array[EnemyShip] once that class exists (T05)
-var projectiles: Array = []    # Dictionary form for speed
+var enemies: Array = []        # Array[EnemyShip] (typed at use site to avoid an autoload→class dependency)
+var projectiles: Array = []    # Dictionary form for speed; schema documented on combat.gd
 var particles: Array = []      # sea spray
 var debris: Array = []
 var splashes: Array = []
@@ -14,6 +14,26 @@ var splashes: Array = []
 # GameState.current_port_id which only flips on dock/undock.
 var active_port: PortDef = null
 
+# T06: currently-locked enemy target (closest hostile in range, or null).
+# HUD reads this for lock-on UI.
+var active_target: Node = null
+
+# T06: aim-mode state. Populated by PlayerShip each frame while aim_mode is
+# true; consumed by AimOverlay (3D lines) and HUD (telemetry text). Empty when
+# not aiming. Schema:
+#   active: bool
+#   side: String         "port" | "starboard"
+#   yaw_offset: float    rad, clamped to ±pi/4
+#   range: float         metres, 30..240
+#   height: float        metres, -10..30
+#   reticle: Vector3     world-space target point
+var aim_state: Dictionary = {}
+
+# T06: enforcer alert flag. The authority response spawns one galleon on the
+# first no-fire-zone violation per session; this latch prevents a second spawn
+# until the active enforcer is sunk/de-aggros (combat_system flips it back).
+var enforcer_alert_active: bool = false
+
 
 func clear() -> void:
 	enemies.clear()
@@ -22,3 +42,6 @@ func clear() -> void:
 	debris.clear()
 	splashes.clear()
 	active_port = null
+	active_target = null
+	aim_state = {}
+	enforcer_alert_active = false

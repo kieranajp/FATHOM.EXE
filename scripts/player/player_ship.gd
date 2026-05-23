@@ -30,7 +30,22 @@ var rudder: float = 0.0
 var aim_mode: bool = false
 var aim_side: String = "starboard"  # "port" | "starboard" — set when aim mode toggles
 var collision_immunity_timer: float = 0.0
-var speed_debuff_timer: float = 0.0  # filled in by combat (chain shot) later
+var speed_debuff_timer: float = 0.0  # filled in by combat (chain shot)
+
+# Combat state — written by CombatSystem (countdown) and Combat.fire_broadside
+# (set to reload_seconds on a successful broadside). HUD reads these for the
+# reload bars.
+var reload_port: float = 0.0
+var reload_stbd: float = 0.0
+
+# Aim-mode reticle params. Mouse drag while aim_mode is held adjusts these,
+# clamped to the limits in CombatTuning. Combat reads them via the aim dict.
+var aim_yaw_offset: float = 0.0   # ±π/4
+var aim_range: float = 120.0      # 30..240
+var aim_height: float = 0.0       # -10..30
+# Reticle world position — recomputed each frame; cached so AimOverlay reads it
+# once per frame rather than re-deriving.
+var aim_reticle_world: Vector3 = Vector3.ZERO
 
 var ship_class: ShipClass
 var _ocean: Ocean
@@ -70,7 +85,33 @@ func _physics_process(delta: float) -> void:
 	_tick_waves()
 	_apply_transform()
 	_tick_sail_deformation()
+	_tick_aim_state()
 	GameState.ship.sail_level = _sail_level
+
+
+# Recomputes the aim reticle + publishes World.aim_state. AimOverlay and HUD
+# read this every frame; if aim_mode is off, we clear the dict so consumers
+# can branch cheaply.
+func _tick_aim_state() -> void:
+	if not aim_mode:
+		if not World.aim_state.is_empty():
+			World.aim_state = {}
+		return
+	var fire_yaw: float = yaw - PI / 2.0 if aim_side == "port" else yaw + PI / 2.0
+	var aim_yaw: float = fire_yaw + aim_yaw_offset
+	aim_reticle_world = Vector3(
+		global_position.x + sin(aim_yaw) * aim_range,
+		aim_height,
+		global_position.z + cos(aim_yaw) * aim_range,
+	)
+	World.aim_state = {
+		"active": true,
+		"side": aim_side,
+		"yaw_offset": aim_yaw_offset,
+		"range": aim_range,
+		"height": aim_height,
+		"reticle": aim_reticle_world,
+	}
 
 
 # Refreshes the ship mesh each tick to apply the sail-billow deformation at the
@@ -155,13 +196,79 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("ammo_grape"):
 		GameState.ship.active_ammo = "grape"
 
-	# Mouse position tracking — used at the moment aim engages (above).
+	# Fire broadsides — Q (port) / E (starboard). Routed through the
+	# CombatSystem node in OpenSea; it owns the projectile spawn + ammo
+	# bookkeeping. We forward via EventBus' fire signals? No — there is no
+	# fire-request signal in the locked vocabulary (per ARCHITECTURE.md). Look
+	# up the system directly via the scene tree.
+	if event.is_action_pressed("fire_port"):
+		_request_fire("port")
+	elif event.is_action_pressed("fire_starboard"):
+		_request_fire("starboard")
+
+	# Mouse motion: track screen-X for the aim-side decision, and drive aim
+	# parameter drag while aim_mode is held.
 	if event is InputEventMouseMotion:
+		var mm := event as InputEventMouseMotion
 		var vp := get_viewport()
 		if vp != null:
 			var size := vp.get_visible_rect().size
 			if size.x > 0.0:
-				last_mouse_x_norm = (event.position.x / size.x) * 2.0 - 1.0
+				last_mouse_x_norm = (mm.position.x / size.x) * 2.0 - 1.0
+		if aim_mode:
+			_tick_aim_drag(mm)
+
+
+# Mouse-drag → aim parameter updates while aim_mode is active. Horizontal drag
+# adjusts yaw_offset (±π/4) and range (30..240). Hold Shift (aim_elevate_modifier)
+# to drag vertical for aim_height (-10..30).
+func _tick_aim_drag(event: InputEventMouseMotion) -> void:
+	var combat_tuning := _combat_tuning()
+	if combat_tuning == null:
+		return
+	var elevate := Input.is_action_pressed("aim_elevate_modifier")
+	if elevate:
+		# Drag up = elevate; mouse Y grows down in Godot.
+		aim_height = clampf(
+			aim_height - event.relative.y * combat_tuning.aim_mouse_height_rate,
+			combat_tuning.aim_height_min,
+			combat_tuning.aim_height_max,
+		)
+	else:
+		aim_yaw_offset = clampf(
+			aim_yaw_offset + event.relative.x * combat_tuning.aim_mouse_yaw_rate,
+			-combat_tuning.aim_yaw_max,
+			combat_tuning.aim_yaw_max,
+		)
+		aim_range = clampf(
+			aim_range - event.relative.y * combat_tuning.aim_mouse_range_rate,
+			combat_tuning.aim_range_min,
+			combat_tuning.aim_range_max,
+		)
+
+
+# Forwards a fire input to the CombatSystem. Lookup is cheap (one find_child)
+# and only runs on key-down events, so we don't bother caching.
+func _request_fire(side: String) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var root := tree.current_scene
+	if root == null:
+		return
+	var combat := root.find_child("CombatSystem", true, false) as CombatSystem
+	if combat == null:
+		return
+	combat.player_fire(side)
+
+
+# Loads the shared CombatTuning. Cached on the node so repeated mouse-drag
+# events don't thrash the resource cache.
+var _combat_tuning_cached: CombatTuning
+func _combat_tuning() -> CombatTuning:
+	if _combat_tuning_cached == null:
+		_combat_tuning_cached = load("res://data/tuning/combat.tres") as CombatTuning
+	return _combat_tuning_cached
 
 
 func _tick_sailing(delta: float) -> void:

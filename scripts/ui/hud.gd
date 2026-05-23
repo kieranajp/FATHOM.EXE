@@ -309,10 +309,22 @@ func _tick_low_hp_flash(delta: float) -> void:
 		_low_hp_flash_t = 0.0
 
 
-# Returns a fraction in [0, 1] where 1.0 == ready. T06 owns reload timers;
-# until they're wired in, both sides always read READY.
-func _read_reload(_side: String) -> float:
-	return 1.0
+# Returns a fraction in [0, 1] where 1.0 == ready. T06 wires the timers on
+# PlayerShip (reload_port / reload_stbd); CombatSystem decrements them. Reads
+# defensively in case PlayerShip is absent (headless tests, Port scene).
+func _read_reload(side: String) -> float:
+	var player := _find_player()
+	if player == null:
+		return 1.0
+	var reload_seconds: float = 3.0  # mirrors CombatTuning.reload_seconds default
+	var remaining: float = 0.0
+	if side == "port":
+		remaining = player.reload_port
+	else:
+		remaining = player.reload_stbd
+	if remaining <= 0.0:
+		return 1.0
+	return clampf(1.0 - remaining / reload_seconds, 0.0, 1.0)
 
 
 func _apply_reload(bar: Control, fill: ColorRect, value_label: Label, frac: float) -> void:
