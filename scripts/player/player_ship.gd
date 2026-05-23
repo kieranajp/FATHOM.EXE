@@ -264,7 +264,7 @@ func _load_ship_class(class_id: String) -> ShipClass:
 #
 # `_mesh_instance` continues to point at the resulting MeshInstance3D so
 # downstream code (and future tickets) that needs a "ship visual" handle
-# still has one — same convention the old ShipMesh.build_player path used.
+# still has one.
 #
 # The wireframe_material export is kept on the class for backwards-compat
 # with OpenSea.tscn (until the next scene-cleaning ticket removes the
