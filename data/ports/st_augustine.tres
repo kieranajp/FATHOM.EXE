@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "st_augustine"
 display_name = "St. Augustine"
-position = Vector3(-120, 0, 180)
+position = Vector3(-360, 0, -540)
 size = 25.0
 height = 15.0
 archipelago_id = "smugglers_run"

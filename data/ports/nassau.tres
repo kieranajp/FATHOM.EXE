@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "nassau"
 display_name = "Nassau"
-position = Vector3(-180, 0, -60)
+position = Vector3(-540, 0, 180)
 size = 22.0
 height = 14.0
 archipelago_id = "pirates_cradle"

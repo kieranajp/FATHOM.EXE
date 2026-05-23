@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "nassau_reef"
 display_name = "Nassau Reef"
-position = Vector3(-220, 0, -40)
+position = Vector3(-660, 0, 120)
 size = 22.0
 height = 13.0
 archipelago_id = "smugglers_run"

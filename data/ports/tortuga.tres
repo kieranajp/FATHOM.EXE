@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "tortuga"
 display_name = "Tortuga"
-position = Vector3(180, 0, -80)
+position = Vector3(540, 0, 240)
 size = 25.0
 height = 16.0
 archipelago_id = "pirates_cradle"

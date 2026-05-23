@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "port_royal"
 display_name = "Port Royal"
-position = Vector3(0, 0, 180)
+position = Vector3(0, 0, -540)
 size = 28.0
 height = 18.0
 archipelago_id = "pirates_cradle"

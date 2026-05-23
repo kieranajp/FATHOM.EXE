@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "bermuda"
 display_name = "Bermuda"
-position = Vector3(0, 0, 220)
+position = Vector3(0, 0, -660)
 size = 26.0
 height = 16.0
 archipelago_id = "smugglers_run"

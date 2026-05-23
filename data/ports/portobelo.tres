@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "portobelo"
 display_name = "Portobelo"
-position = Vector3(160, 0, -120)
+position = Vector3(480, 0, 360)
 size = 23.0
 height = 14.0
 archipelago_id = "spanish_main"
