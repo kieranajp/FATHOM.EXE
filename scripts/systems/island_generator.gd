@@ -97,6 +97,14 @@ static func generate(
 				vz = sin(angle) * final_radius
 				vy = maxf(0.0, height * height_mod_3 + noise_height)
 
+			# Ground the outermost ring at exactly y=0. JS's per-vertex noise
+			# (height_max * 0.15 jitter) can push the outer-ring base above the
+			# wave grid by a metre or two, which reads on screen as "island
+			# floats in mid-air". The maxf(0, ...) in each branch only puts a
+			# floor at zero — the silhouette still drifts up. Clamping the
+			# outermost ring to a hard zero keeps the base on the waterline.
+			if r == rings_count - 1:
+				vy = 0.0
 			# Z-flip on output (JS left-handed → Godot right-handed).
 			verts.append(Vector3(vx, vy, -vz))
 

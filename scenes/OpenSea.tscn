@@ -37,7 +37,7 @@ glow_intensity = 2.0
 glow_strength = 1.1
 glow_bloom = 0.35
 glow_blend_mode = 0
-glow_hdr_threshold = 0.5
+glow_hdr_threshold = 0.3
 
 
 [sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_smoke"]
@@ -62,8 +62,9 @@ script = ExtResource("4")
 tuning = ExtResource("5")
 ocean_path = NodePath("../Ocean")
 wireframe_material = SubResource("ShaderMaterial_wire")
+chase_camera_path = NodePath("../ChaseCamera")
 
-[node name="ChaseCamera" type="Camera3D" parent="."]
+[node name="ChaseCamera" type="Camera3D" parent="." groups=["chase_camera"]]
 transform = Transform3D(1, 0, 0, 0, 0.894427, 0.447214, 0, -0.447214, 0.894427, 0, 5, 10)
 script = ExtResource("6")
 tuning = ExtResource("7")

@@ -71,6 +71,28 @@ func test_atoll_peak_is_shallow() -> void:
 	assert_almost_eq(atoll.vertices[0].y, 2.25, 1e-4, "Atoll peak = 0.15 × height_max")
 
 
+func test_outer_ring_grounded_at_sea_level() -> void:
+	# Pinned because the JS port's per-vertex noise (height_max*0.15) used to
+	# push outer-ring verts above y=0, making the island look like it floated
+	# above the wave grid. Outermost ring (r = rings_count-1) must sit at
+	# exactly y=0 so the silhouette grounds at the waterline.
+	for type_idx in range(4):
+		var m := IslandGenerator.generate(type_idx, 25.0, 15.0, 4, 12)
+		# Outer ring starts at index 1 + (rings_count-1)*sectors = 1 + 3*12 = 37.
+		for i in range(37, 37 + 12):
+			assert_eq(m.vertices[i].y, 0.0,
+				"Type %d outer-ring vertex %d must be at y=0" % [type_idx, i])
+
+
+func test_no_vertex_below_sea_level() -> void:
+	# Belt-and-braces: nothing in the model should be underwater.
+	for type_idx in range(4):
+		var m := IslandGenerator.generate(type_idx, 25.0, 15.0)
+		for i in range(m.vertices.size()):
+			assert_true(m.vertices[i].y >= 0.0,
+				"Type %d vertex %d should be >= 0 (got %f)" % [type_idx, i, m.vertices[i].y])
+
+
 func test_outer_ring_radius_scales_with_size() -> void:
 	# Outer ring (r = rings_count-1) vertices should sit roughly at size
 	# distance from centre (dome type — no x/z mods). Allow JS-rng noise of
