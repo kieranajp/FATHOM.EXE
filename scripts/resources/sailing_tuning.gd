@@ -21,10 +21,14 @@ class_name SailingTuning extends Tuning
 @export var speed_ease_rate: float = 0.04
 
 # Rudder dynamics. JS: rudder ± 0.18 per "key tick", * 0.6 self-center per tick.
-# We use per-second rates so behaviour is dt-independent.
+# We use per-second rates so behaviour is dt-independent (see speed_ease_rate
+# comment above for the convention).
+#
+# rudder_center_rate JS equivalence: `rudder *= 0.6` per frame @ 60 Hz →
+# continuous rate -ln(0.6)*60 ≈ 30.6/s. The wheel snaps to centre fast.
 @export var rudder_input_rate: float = 6.0      # rad/s of rudder per key held
 @export var rudder_max: float = 1.0
-@export var rudder_center_rate: float = 6.0     # how fast rudder eases to 0 on release
+@export var rudder_center_rate: float = 30.6    # how fast rudder eases to 0 on release
 
 # Steering response: turn_rate = (turn_factor + speed * turn_factor_speed) * rudder * turn_scale
 @export var turn_factor: float = 1.8
