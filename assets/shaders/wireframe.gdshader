@@ -31,6 +31,5 @@ void fragment() {
 	
 	vec3 final_color = mix(glow_color * glow_intensity, core_color, core_blend);
 	
-	ALBEDO = vec3(0.0);
-	EMISSION = final_color * alpha;
+	ALBEDO = final_color * alpha;
 }
