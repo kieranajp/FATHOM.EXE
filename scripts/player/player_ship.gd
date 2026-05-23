@@ -5,7 +5,7 @@
 #   - buoyancy + pitch/roll from Ocean.get_wave_height
 #   - predictive island collision against nodes in the "port" group
 #   - input: W/S (sails), A/D (rudder), 1/2/3 (ammo), RMB-hold or Space (aim
-#     mode flag), Q/E (fire flank)
+#     mode flag), LMB-while-aiming or Q/E (fire flank)
 #
 # Reads (never writes) GameState.ship for ship class / sail level / ammo / etc.
 # (sail_level is owned here in `_sail_level`; mirrored to GameState.ship for HUD.)
@@ -221,11 +221,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("ammo_grape"):
 		GameState.ship.active_ammo = "grape"
 
-	# Right mouse drives aim mode.
+	# Mouse buttons: RMB drives aim mode, LMB-while-aiming fires the active
+	# flank. LMB-when-NOT-aiming falls through here (we don't consume it) so
+	# ChaseCamera's _unhandled_input can pick it up for orbit drag.
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_RIGHT:
 			_right_mouse_held = mb.pressed
+		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed and aim_mode:
+			_request_fire(aim_side)
 
 	# Fire broadsides — Q (port) / E (starboard). Kept as keyboard alternatives
 	# alongside LMB-while-aiming. Routed through the CombatSystem node in
