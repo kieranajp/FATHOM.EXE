@@ -178,11 +178,8 @@ func _tick_sailing_panel() -> void:
 	# Wind label + needle.
 	var wind_deg := angle_to_compass_deg(WindSystem.angle)
 	_wind_value.text = "%d KTS  %s" % [int(round(WindSystem.speed)), compass_label(wind_deg)]
-	# Needle rotation: wind direction relative to ship's bow. JS:
-	#   rotate(wind.angle - player.yaw)
-	# In our frame, both angles share -Z=forward, so subtract directly. The
-	# needle pivot is set in the scene at the centre of the compass.
-	_wind_needle.rotation = WindSystem.angle - yaw
+	# The needle pivot is set in the scene at the centre of the compass.
+	_wind_needle.rotation = wind_needle_rotation(yaw, WindSystem.angle)
 
 	# Sailing status (efficiency-tier text + colour).
 	var efficiency: float = SailingMath.efficiency(yaw, WindSystem.angle)
@@ -411,6 +408,24 @@ static func yaw_to_compass_deg(yaw_radians: float) -> int:
 
 static func angle_to_compass_deg(angle_radians: float) -> int:
 	return yaw_to_compass_deg(angle_radians)
+
+
+# Wind-needle rotation, in radians, for the HUD compass dial.
+#
+# JS reference (game.js:3508) uses `wind.angle - player.yaw` with a CSS
+# `transform: rotate(...)` — CSS is CW-positive on-screen and JS yaw is also
+# CW-positive on-screen, so the two conventions agree visually.
+#
+# In Godot the conventions disagree: `Control.rotation` is CW-positive on
+# screen, but yaw/wind angles in our world frame are CCW-positive (right-hand
+# rule about +Y up). So we negate the JS-canonical formula to get the right
+# visual rotation: at yaw=0 with wind from the west (wind_angle=+PI/2 by our
+# compass convention — see test_hud_compass.gd), the needle must point left,
+# i.e. negative Control.rotation.
+#
+# See test/test_hud_wind_needle.gd for the regression assertions.
+static func wind_needle_rotation(yaw_radians: float, wind_angle_radians: float) -> float:
+	return yaw_radians - wind_angle_radians
 
 
 # 8-point compass label from degrees. 0=N, 45=NE, … 315=NW.
