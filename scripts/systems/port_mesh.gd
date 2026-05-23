@@ -1,20 +1,13 @@
 # PortMesh — placeholder island + lighthouse mesh builder.
 #
 # Produces a low-poly visual for a PortDef so the player can see ports at sea
-# and crash into them. Geometry is intentionally crude (a cone + a cylinder
-# stack) — a real custom hull/island mesh ticket post-parity will replace it.
+# and crash into them. Box-only geometry — the wireframe shader's UV-based edge
+# detection works cleanly on per-face-UV meshes (BoxMesh, PlaneMesh) but only
+# the U seam reads as an edge on CylinderMesh. Sticking to boxes gives crisp
+# vector silhouettes for the island plinth + lighthouse tower + cap.
 #
 # JS reference: game.js:3012-3042 (procedural topographic islands + lighthouse
 # + spinning yellow beacon).
-#
-# Materials: every visible mesh uses T09's wireframe shader (res://assets/shaders/
-# wireframe.gdshader) per ARCHITECTURE.md § "Rendering decisions". The shader's
-# UV-based edge detection looks clean on per-face-unwrapped meshes (BoxMesh,
-# PlaneMesh) but is quirky on CylinderMesh — only the U seam reliably reads as
-# an edge, so the island/lighthouse cylinders render as a single vertical strip
-# rather than a full wire silhouette. Accepted as a placeholder-geometry quirk;
-# replacing the geometry with proper per-face UVs is the right fix, not changing
-# the shader. See wireframe.gdshader for the matching comment.
 class_name PortMesh extends RefCounted
 
 const WIREFRAME_SHADER := preload("res://assets/shaders/wireframe.gdshader")
@@ -28,60 +21,57 @@ static func build(port_def: PortDef) -> Node3D:
 	var root := Node3D.new()
 	root.name = "PortVisual"
 
-	# Island: stretched cylinder. Radius == port.size at the waterline, tapering
-	# narrower as it rises. CylinderMesh's top/bottom radius gives us that for
-	# free.
+	# Island: a flat rectangular plinth. Scales to port.size × port.size at the
+	# waterline. Renders as a clean rectangle outline rather than a barely-visible
+	# cylinder-with-one-seam.
 	var island := MeshInstance3D.new()
 	island.name = "Island"
-	var island_mesh := CylinderMesh.new()
-	island_mesh.bottom_radius = port_def.size
-	island_mesh.top_radius = port_def.size * 0.55
-	island_mesh.height = port_def.height
-	island_mesh.radial_segments = 12
-	island_mesh.rings = 2
+	var island_mesh := BoxMesh.new()
+	# Width / depth = port footprint diameter (2 × size — size was a radius).
+	island_mesh.size = Vector3(port_def.size * 2.0, port_def.height, port_def.size * 2.0)
 	island.mesh = island_mesh
 	island.material_override = _make_wireframe_material(port_def.color)
-	# CylinderMesh is centred at origin; lift so the base sits at y=0 (waterline).
+	# BoxMesh is centred at origin; lift so the base sits at y=0 (waterline).
 	island.position = Vector3(0.0, port_def.height * 0.5, 0.0)
 	root.add_child(island)
 
-	# Lighthouse: a thin column + a small cap, anchored on the island summit.
+	# Lighthouse: a tall column + a small cap, anchored on the island summit.
 	# JS lighthousePos.y == port.height — same here.
 	var lh_root := Node3D.new()
 	lh_root.name = "Lighthouse"
 	lh_root.position = Vector3(0.0, port_def.height, 0.0)
 	root.add_child(lh_root)
 
+	# Column — tall thin box. Wireframe shader renders all 12 edges cleanly,
+	# so the silhouette reads as a proper architectural tower.
 	var lh_column := MeshInstance3D.new()
 	lh_column.name = "Column"
-	var column_mesh := CylinderMesh.new()
-	column_mesh.bottom_radius = 1.2
-	column_mesh.top_radius = 0.9
-	column_mesh.height = 4.0
-	column_mesh.radial_segments = 8
+	var column_mesh := BoxMesh.new()
+	column_mesh.size = Vector3(2.0, 8.0, 2.0)
 	lh_column.mesh = column_mesh
 	lh_column.material_override = _make_wireframe_material(LIGHTHOUSE_COLOUR)
-	lh_column.position = Vector3(0.0, 2.0, 0.0)
+	# Centre lifted so the column base sits on the island summit.
+	lh_column.position = Vector3(0.0, 4.0, 0.0)
 	lh_root.add_child(lh_column)
 
+	# Cap — a wider, shorter cube perched on top of the column. Yellow to match
+	# the beacon, suggesting the lit chamber under the lantern room.
 	var lh_cap := MeshInstance3D.new()
 	lh_cap.name = "Cap"
-	var cap_mesh := CylinderMesh.new()
-	# Small cone — bottom > top radius gives a tapered hat.
-	cap_mesh.bottom_radius = 1.3
-	cap_mesh.top_radius = 0.1
-	cap_mesh.height = 1.2
-	cap_mesh.radial_segments = 8
+	var cap_mesh := BoxMesh.new()
+	cap_mesh.size = Vector3(2.5, 1.5, 2.5)
 	lh_cap.mesh = cap_mesh
-	lh_cap.material_override = _make_wireframe_material(LIGHTHOUSE_COLOUR)
-	lh_cap.position = Vector3(0.0, 4.6, 0.0)
+	lh_cap.material_override = _make_wireframe_material(BEACON_COLOUR)
+	# Sits on top of the 8m column → centre at y = 8 + 0.75.
+	lh_cap.position = Vector3(0.0, 8.75, 0.0)
 	lh_root.add_child(lh_cap)
 
 	# Beacon: a Node3D that the Port script spins in _process. Carries a thin
 	# yellow box stretched forward — a cheap "rotating spotlight beam" stand-in.
 	var beacon := Node3D.new()
 	beacon.name = "Beacon"
-	beacon.position = Vector3(0.0, 4.0, 0.0)
+	# Anchor the spinner at the centre of the cap.
+	beacon.position = Vector3(0.0, 8.75, 0.0)
 	lh_root.add_child(beacon)
 
 	var beam := MeshInstance3D.new()
