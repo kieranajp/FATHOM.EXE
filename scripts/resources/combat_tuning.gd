@@ -100,6 +100,11 @@ class_name CombatTuning extends Tuning
 @export var splash_life: float = 0.55
 @export var debris_count_on_hit: int = 8
 
+# --- Ship physics. ---
+# Separate from sailing_tuning.roll_factor so enemy ship feel can be tuned
+# independently of the player's roll response.
+@export var enemy_roll_factor: float = 0.05
+
 
 # T48 — Map an ArchipelagoDef.risk_tier (1/2/3) to an ambient spawn count.
 # Non-deterministic by design: tier 1 and tier 3 roll RNG. Tests should call

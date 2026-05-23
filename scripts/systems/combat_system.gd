@@ -319,7 +319,7 @@ func _tick_enemies(delta: float) -> void:
 			enemy.global_position.z - cos(enemy.yaw) * 1.5,
 		)
 		enemy.pitch = (ahead_y - behind_y) / 3.0
-		enemy.roll = -enemy.rudder * enemy.speed * 0.05
+		enemy.roll = -enemy.rudder * enemy.speed * tuning.enemy_roll_factor
 		enemy.apply_transform()
 
 		keep.append(enemy)

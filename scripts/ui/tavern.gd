@@ -143,7 +143,7 @@ func _on_buy_pressed() -> void:
 	GameState.ship.gold -= cost
 	GameState.last_drink_purchased = true
 	
-	AudioBus.play_beep(1000.0, 0.1) # Clink retro replacement
+	AudioBus.play_clink()
 	_update_gold_display()
 	
 	_message_label.text = "\"Cheers, Cap'n! *clink* Ask me again and I'll tell ya the finest trade gossip I know!\""
