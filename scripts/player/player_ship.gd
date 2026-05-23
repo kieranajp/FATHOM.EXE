@@ -258,9 +258,11 @@ func _load_ship_class(class_id: String) -> ShipClass:
 
 
 # Placeholder visual: a stretched cube rendering as a glowing vector wireframe.
-# Real custom mesh geometry is T09's job — we render the placeholder BoxMesh
-# using our custom wireframe.gdshader, mapped with tuning parameters and 
-# faction coloring.
+# Uses T09's wireframe.gdshader via the exported `wireframe_material` (wired in
+# OpenSea.tscn). The box geometry stays as placeholder until a real hull-mesh
+# ticket lands post-parity — BoxMesh has per-face UVs so the UV-based edge
+# detection draws all 12 edges cleanly. The StandardMaterial3D branch below is
+# a defensive fallback for the case where the scene export is missing.
 func _build_placeholder_mesh() -> void:
 	_mesh_instance = MeshInstance3D.new()
 	_mesh_instance.name = "Placeholder"

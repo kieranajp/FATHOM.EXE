@@ -1,6 +1,12 @@
 // Wireframe shader - renders glowing vector lines with a bright inner core.
 // Suitable for retro wireframe vector games (FATHOM.EXE).
 // Computes anti-aliased edges using UV face coordinates and fwidth().
+//
+// UV-based edge detection works cleanly on meshes with per-face UV unwraps
+// (BoxMesh, PlaneMesh). On CylinderMesh / SphereMesh and other radially
+// unwrapped surfaces, expect visual artefacts — only the U seam may render as
+// an edge. The legendary-galleon ticket (post-parity) will likely need a
+// barycentric variant; for now, placeholder geometry accepts the quirk.
 
 shader_type spatial;
 render_mode unshaded, fog_disabled, cull_disabled;
