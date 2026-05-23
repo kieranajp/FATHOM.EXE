@@ -129,7 +129,13 @@ func _build_mesh() -> void:
 
 	# Per-class .tres already encodes silhouette + scale; build at 1.0 so the
 	# authored coords win. Faction tint comes from the colour override above.
-	var inst: MeshInstance3D = _line_model.build_mesh_instance(1.0)
+	# ThickLineMesh gives the same resolution-independent line width as the
+	# player ship — see RenderTuning.line_thickness_world.
+	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
+	var thickness: float = 0.04
+	if render_tuning != null:
+		thickness = render_tuning.line_thickness_world
+	var inst: MeshInstance3D = _line_model.build_thick_mesh_instance(1.0, thickness)
 	inst.name = "ShipVisual"
 	_mesh_instance = inst
 	add_child(inst)

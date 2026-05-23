@@ -35,6 +35,3 @@ class_name CameraTuning extends Tuning
 # Ambient camera bobbing amplitude / frequency.
 @export var bob_amplitude: float = 0.15
 @export var bob_frequency: float = 0.8
-
-# Aim mode (space held) freezes orbit at the active flank. JS uses ±PI/2 offset.
-@export var aim_flank_yaw_offset: float = PI / 2.0

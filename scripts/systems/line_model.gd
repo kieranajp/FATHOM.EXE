@@ -107,6 +107,43 @@ func build_mesh_instance(scale: float = 1.0, emission_energy: float = 1.5) -> Me
 	var inst := MeshInstance3D.new()
 	inst.mesh = build_immediate_mesh(scale)
 
+	var mat := _build_material(emission_energy)
+	inst.material_override = mat
+	# Models rebuild rarely; the AABB is stable so default culling is fine —
+	# unlike Ocean's per-frame regenerate grid, this mesh doesn't flicker.
+	return inst
+
+
+# Like build_mesh_instance, but emits view-aligned thick quads instead of
+# 1-pixel PRIMITIVE_LINES. The returned node is a ThickLineMesh which rebuilds
+# itself every frame against the active Camera3D — necessary because the
+# quads must face the camera to read as flat ribbons.
+#
+# `thickness` is world-space metres of full ribbon width. ~0.04m at chase-cam
+# range reads as roughly 2px on 4K; see RenderTuning.line_thickness_world.
+#
+# Returns the ThickLineMesh node (a MeshInstance3D subclass) so callers that
+# need to drive deformations (sails) can set `open_factor` directly. Static
+# models can ignore the field — it defaults to 1.0.
+func build_thick_mesh_instance(
+	scale: float = 1.0,
+	thickness: float = 0.04,
+	emission_energy: float = 1.5,
+) -> ThickLineMesh:
+	var inst := ThickLineMesh.new()
+	inst.model = self
+	inst.thickness = thickness
+	inst.scale_factor = scale
+	inst.material_override = _build_material(emission_energy)
+	return inst
+
+
+# Shared material build — extracted so both the line and the thick-line paths
+# stay byte-identical. Bloom contract: ALBEDO + emission > 1.0 so glow passes
+# the WorldEnvironment HDR threshold. Cull disabled so the thick-line quads
+# render from either side — billboarded triangles flip winding as the camera
+# orbits, and the default back-face cull would silently drop half the geometry.
+func _build_material(emission_energy: float) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.albedo_color = color
@@ -115,7 +152,5 @@ func build_mesh_instance(scale: float = 1.0, emission_energy: float = 1.5) -> Me
 	mat.emission_energy_multiplier = emission_energy
 	mat.vertex_color_use_as_albedo = true
 	mat.disable_fog = true
-	inst.material_override = mat
-	# Models rebuild rarely; the AABB is stable so default culling is fine —
-	# unlike Ocean's per-frame regenerate grid, this mesh doesn't flicker.
-	return inst
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return mat

@@ -23,35 +23,41 @@ func test_both_inputs_is_true() -> void:
 	assert_true(PlayerShip._compute_aim_mode(true, true))
 
 
-# Aim-side selection: must read from the camera's accumulated drag yaw (JS
-# game.js:458 — `aimSide = mouse.yaw >= 0 ? starboard : port`). Previously
-# read cursor X, which defaulted to 0 → "always starboard" if the player
-# right-clicked without first moving the cursor.
-func test_aim_side_positive_yaw_picks_starboard() -> void:
-	assert_eq(PlayerShip._aim_side_from_camera_yaw(0.5), "starboard")
+# Aim-side selection — JS rule is "fire AWAY from camera". The camera sees the
+# ship's near flank; targets visible past the hull are on the far flank, which
+# is where we want the cannons to be.
+#
+# In Godot's right-handed frame (+X right, -Z forward) a positive
+# `_drag_offset_yaw` orbits the camera to the ship's STARBOARD (camera at +X),
+# so the firing flank is PORT. Negative → camera on port → fire starboard.
+#
+# Previously this returned the opposite mapping (and the camera was
+# re-positioned to the opposite flank in aim mode); both moved in the same
+# round-3 fix so the camera now stays where the user dragged it.
+func test_aim_side_positive_yaw_picks_port() -> void:
+	assert_eq(PlayerShip._aim_side_from_camera_yaw(0.5), "port")
 
 
-func test_aim_side_negative_yaw_picks_port() -> void:
-	assert_eq(PlayerShip._aim_side_from_camera_yaw(-0.5), "port")
+func test_aim_side_negative_yaw_picks_starboard() -> void:
+	assert_eq(PlayerShip._aim_side_from_camera_yaw(-0.5), "starboard")
 
 
-func test_aim_side_zero_yaw_picks_starboard() -> void:
-	# JS uses `>= 0` — exact zero is the starboard branch. Pinned so a future
+func test_aim_side_zero_yaw_picks_port() -> void:
+	# `>= 0` — exact zero falls into the port branch. Pinned so a future
 	# refactor doesn't silently swap the inequality.
-	assert_eq(PlayerShip._aim_side_from_camera_yaw(0.0), "starboard")
+	assert_eq(PlayerShip._aim_side_from_camera_yaw(0.0), "port")
 
 
-# Aim drag yaw is negated because the chase camera sits OPPOSITE the firing
-# flank — mouse-right in screen space corresponds to a leftward drag in the
-# firing-flank frame. The negation lives in _compute_aim_yaw_delta so a future
-# camera-side flip can flip this back atomically.
-func test_aim_yaw_delta_positive_mouse_dx_gives_negative_offset() -> void:
-	assert_almost_eq(PlayerShip._compute_aim_yaw_delta(1.0, 0.003), -0.003, 1e-6)
+# Aim drag yaw — positive mouse_dx (cursor right) → positive yaw offset.
+# Matches JS game.js:497. The previous negation existed to compensate for a
+# round-2 camera flank-flip that has now been reverted.
+func test_aim_yaw_delta_positive_mouse_dx_gives_positive_offset() -> void:
+	assert_almost_eq(PlayerShip._compute_aim_yaw_delta(1.0, 0.003), 0.003, 1e-6)
 
 
-func test_aim_yaw_delta_negative_mouse_dx_gives_positive_offset() -> void:
-	assert_almost_eq(PlayerShip._compute_aim_yaw_delta(-1.0, 0.003), 0.003, 1e-6)
+func test_aim_yaw_delta_negative_mouse_dx_gives_negative_offset() -> void:
+	assert_almost_eq(PlayerShip._compute_aim_yaw_delta(-1.0, 0.003), -0.003, 1e-6)
 
 
 func test_aim_yaw_delta_scales_with_rate() -> void:
-	assert_almost_eq(PlayerShip._compute_aim_yaw_delta(2.0, 0.01), -0.02, 1e-6)
+	assert_almost_eq(PlayerShip._compute_aim_yaw_delta(2.0, 0.01), 0.02, 1e-6)

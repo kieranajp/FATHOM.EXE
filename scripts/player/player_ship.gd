@@ -55,11 +55,12 @@ var aim_reticle_world: Vector3 = Vector3.ZERO
 var ship_class: ShipClass
 var _ocean: Ocean
 var _mesh_instance: MeshInstance3D
-# Held references for the per-frame sail-deformation rebuild. The model carries
-# `deformations`; we drive `open_factor = _sail_level / 4.0` each frame so the
-# sail collapses to the yard at anchor and reaches full billow at sails-full.
+# Held references for the per-frame sail-deformation rebuild. The mesh is a
+# ThickLineMesh which already self-rebuilds against the active camera each
+# frame — we only need to push the open_factor (`_sail_level / 4`) into it so
+# the sail collapses to the yard at anchor and reaches full billow at sails-full.
 var _ship_model: LineModel
-var _ship_mesh: ImmediateMesh
+var _ship_visual: ThickLineMesh
 var _sail_level: float = 2.0
 # Mouse state for camera flank-side selection — referenced by ChaseCamera.
 # (Aim-side selection no longer uses this — see _aim_side_from_camera_yaw —
@@ -129,15 +130,13 @@ func _tick_aim_state() -> void:
 	}
 
 
-# Refreshes the ship mesh each tick to apply the sail-billow deformation at the
-# current `_sail_level`. Cost is trivial — 17 verts × 28 edges = 56 surface
-# vertex submissions per tick. Mirrors Ocean's rebuild-in-place pattern (keeps
-# the same ImmediateMesh ref, just clears + re-emits surfaces).
+# Pushes the current sail open_factor into the ThickLineMesh, which rebuilds
+# its triangles against the active camera each frame inside its own _process.
+# We don't trigger the rebuild here — just keep the field in sync.
 func _tick_sail_deformation() -> void:
-	if _ship_model == null or _ship_mesh == null:
+	if _ship_visual == null:
 		return
-	var open_factor: float = clampf(_sail_level / 4.0, 0.0, 1.0)
-	_ship_model.rebuild_immediate_mesh(_ship_mesh, 1.0, open_factor)
+	_ship_visual.open_factor = clampf(_sail_level / 4.0, 0.0, 1.0)
 
 
 # Public read accessors used by HUD/camera/etc.
@@ -180,24 +179,25 @@ static func _compute_aim_mode(right_mouse_held: bool, aim_action_pressed: bool) 
 	return right_mouse_held or aim_action_pressed
 
 
-# Aim-mode yaw drag — sign is negated because the chase camera now sits on
-# the OPPOSITE side of the firing flank (see ChaseCamera.compute_aim_yaw_offset).
-# That mirroring means a mouse-drag-right in screen space is a left-drag in
-# the firing-flank's local frame. JS reference (game.js:497) uses `+ dx`, but
-# JS placed the camera on the SAME side as firing, so we invert here to keep
-# the on-screen reticle moving with the cursor.
+# Aim-mode yaw drag — positive mouse_dx (cursor right) → positive yaw offset.
+# Matches JS game.js:497 (`mouse.aimYaw += dx * rate`). The camera no longer
+# repositions in aim mode, so the previous negation (which compensated for a
+# never-shipped camera flip) is dropped.
 static func _compute_aim_yaw_delta(mouse_dx: float, rate: float) -> float:
-	return -mouse_dx * rate
+	return mouse_dx * rate
 
 
-# Aim-side selection from camera yaw offset. Mirrors JS game.js:458 —
-# `aimSide = mouse.yaw >= 0 ? 'starboard' : 'port'` where `mouse.yaw` is the
-# accumulated LMB-drag yaw on the orbit camera, not the cursor X. Static so the
-# unit test can pin the truth table without a scene tree.
+# Aim-side selection from camera yaw offset. The JS-derived rule is "fire AWAY
+# from the camera" — the camera sees the ship's near flank, so we fire from the
+# opposite (far) flank where targets are visible past the hull. In Godot's
+# right-handed frame (+X right, -Z forward), a positive `_drag_offset_yaw` on
+# ChaseCamera orbits the camera to the ship's STARBOARD side (camera at +X),
+# so the firing flank is PORT. Negative offset → camera on port → fire starboard.
 #
-# >= 0 (not just > 0) so a freshly-zeroed camera defaults to starboard, matching JS.
+# Static so the unit test can pin the truth table without a scene tree.
+# >= 0 (not just > 0) so a freshly-zeroed camera picks a deterministic side.
 static func _aim_side_from_camera_yaw(camera_yaw_offset: float) -> String:
-	return "starboard" if camera_yaw_offset >= 0.0 else "port"
+	return "port" if camera_yaw_offset >= 0.0 else "starboard"
 
 
 # Resolves the ChaseCamera reference. Prefers the explicit NodePath; falls
@@ -242,16 +242,16 @@ func _tick_input(delta: float) -> void:
 		var center_ease: float = 1.0 - exp(-tuning.rudder_center_rate * delta)
 		rudder = lerpf(rudder, 0.0, center_ease)
 
-	# Aim mode flag. Camera does the actual flank-yaw freeze; firing reads it
-	# via _unhandled_input's LMB branch. RMB-hold is the primary input; Space
-	# is kept as a keyboard alternative for trackpad/keyboard-only players.
+	# Aim mode flag. Camera does NOT reposition in aim mode — it stays where the
+	# user dragged it. RMB-hold is the primary input; Space is kept as a
+	# keyboard alternative for trackpad/keyboard-only players.
 	var was_aim := aim_mode
 	aim_mode = _compute_aim_mode(_right_mouse_held, Input.is_action_pressed("aim"))
 	if aim_mode and not was_aim:
 		# Lock the active flank based on the ChaseCamera's accumulated drag yaw
-		# offset — matches JS game.js:458 (`mouse.yaw >= 0 ? starboard : port`).
-		# Previous logic read `last_mouse_x_norm` (the bare cursor position),
-		# which defaulted to 0 → always-starboard when the cursor hadn't moved.
+		# offset. Rule: "fire AWAY from camera" — the camera sees the near
+		# flank, so we fire from the far flank where targets are visible past
+		# the hull. See _aim_side_from_camera_yaw for the sign-mapping comment.
 		var camera := _get_chase_camera()
 		var camera_yaw: float = camera.get_drag_yaw_offset() if camera != null else 0.0
 		aim_side = _aim_side_from_camera_yaw(camera_yaw)
@@ -473,10 +473,10 @@ func _load_ship_class(class_id: String) -> ShipClass:
 	return load(path) as ShipClass
 
 
-# Player visual: a LineModel rendered as PRIMITIVE_LINES — pentagonal hull,
-# masts, billowing sails with ribbing. Coordinates ported verbatim from the
-# JS prototype's per-class models (see data/models/*.tres + the comment on
-# each file for the JS→Godot Z-flip).
+# Player visual: a LineModel rendered as billboarded thick-line quads via
+# ThickLineMesh — pentagonal hull, masts, billowing sails with ribbing.
+# Coordinates ported verbatim from the JS prototype's per-class models (see
+# data/models/*.tres + the comment on each file for the JS→Godot Z-flip).
 #
 # Selection is class-based: we load `data/models/<ship_class_id>.tres`. If
 # the file is missing (e.g. a future class added to ShipClass before its
@@ -510,22 +510,22 @@ func _build_placeholder_mesh() -> void:
 
 	# JS dinghy coords are in metres. The JS canvas renderer used scale=1 for
 	# the player too (game.js sea-spray block), so no extra scale is needed.
-	# Player ship bumps emission energy above LineModel's default 1.5 — see
-	# RenderTuning.player_ship_emission_energy. Bloom is exponential past the
-	# HDR threshold, so a higher multiplier reads as thicker on screen even
-	# though PRIMITIVE_LINES can't actually change line pixel width.
+	# Player ship bumps emission energy above the LineModel default — see
+	# RenderTuning.player_ship_emission_energy. ThickLineMesh gives us real
+	# pixel thickness on top of the emissive bloom.
 	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
 	var emission_energy: float = 1.5
+	var thickness: float = 0.04
 	if render_tuning != null:
 		emission_energy = render_tuning.player_ship_emission_energy
-	var inst := model.build_mesh_instance(1.0, emission_energy)
+		thickness = render_tuning.line_thickness_world
+	var inst := model.build_thick_mesh_instance(1.0, thickness, emission_energy)
 	inst.name = "ShipVisual"
 	_mesh_instance = inst
-	# Hold refs so _tick_sail_deformation can rebuild the existing mesh each
-	# frame at open_factor = _sail_level / 4. The model is the (already
-	# duplicated) per-instance copy — safe to keep.
+	# Hold refs so _tick_sail_deformation can push open_factor each frame.
+	# The model is the (already duplicated) per-instance copy — safe to keep.
 	_ship_model = model
-	_ship_mesh = inst.mesh as ImmediateMesh
+	_ship_visual = inst
 	add_child(inst)
 	# Apply initial deformation so the boot-state sail level matches what the
 	# player will see in the first physics tick.

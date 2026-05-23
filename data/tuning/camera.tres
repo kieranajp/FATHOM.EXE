@@ -18,4 +18,3 @@ roll_blend = 0.3
 look_height_factor = 0.35
 bob_amplitude = 0.15
 bob_frequency = 0.8
-aim_flank_yaw_offset = 1.5707963267948966

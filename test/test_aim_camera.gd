@@ -1,32 +1,37 @@
-# Pins the chase camera's aim-flank invariant: when the player aims at one
-# side, the camera must sit on the OPPOSITE side so the ship doesn't block
-# the view of targets. Load-bearing because a future agent "fixing" the sign
-# could regress the playtest issue back into existence.
+# Aim camera contract — the chase camera DOES NOT reposition in aim mode.
+# Matches JS where `final_yaw = player.yaw + mouse.yaw` runs regardless of
+# aim state, i.e. the user-chosen vantage persists through RMB-press.
 #
-# See scripts/systems/chase_camera.gd.compute_aim_yaw_offset.
+# This test pins the absence of the old "flank repositioning" behaviour.
+# If a future agent re-adds a `compute_aim_yaw_offset` helper or otherwise
+# branches the camera yaw on aim_mode, the assertions below will alert by
+# referencing methods that should not exist.
+#
+# Note: the aim-side selection rule (which flank fires) lives in
+# test_input_aim_state.gd alongside the rest of the player-input invariants.
 extends GutTest
 
 
-func test_starboard_fire_puts_camera_on_port() -> void:
-	# Firing starboard (yaw + π/2) → camera at yaw - π/2.
-	var offset := ChaseCamera.compute_aim_yaw_offset("starboard", PI / 2.0)
-	assert_almost_eq(offset, -PI / 2.0, 1e-6, "Starboard fire → camera offset is -π/2 (port)")
+func test_chase_camera_has_no_aim_repositioning_helper() -> void:
+	# compute_aim_yaw_offset was removed in the "camera stays put in aim mode"
+	# refactor. If you find yourself wanting to re-add it, re-read the JS
+	# reference (game.js: camera formula does not branch on aim mode) and the
+	# round-3 PR notes before doing so. has_method must be called on an
+	# instance — instantiate, check, free.
+	var cam := ChaseCamera.new()
+	assert_false(
+		cam.has_method("compute_aim_yaw_offset"),
+		"compute_aim_yaw_offset must not exist — aim mode does not reposition the camera"
+	)
+	cam.free()
 
 
-func test_port_fire_puts_camera_on_starboard() -> void:
-	# Firing port (yaw - π/2) → camera at yaw + π/2.
-	var offset := ChaseCamera.compute_aim_yaw_offset("port", PI / 2.0)
-	assert_almost_eq(offset, PI / 2.0, 1e-6, "Port fire → camera offset is +π/2 (starboard)")
-
-
-func test_magnitude_is_preserved() -> void:
-	# Tuning value flows through unchanged in absolute terms.
-	assert_almost_eq(ChaseCamera.compute_aim_yaw_offset("starboard", 1.23), -1.23, 1e-6)
-	assert_almost_eq(ChaseCamera.compute_aim_yaw_offset("port", 1.23), 1.23, 1e-6)
-
-
-func test_unknown_side_defaults_to_positive() -> void:
-	# Defensive — any non-"starboard" string falls into the positive branch.
-	# Don't change this without thinking; aim_side is only ever "port" or
-	# "starboard" in practice, but we shouldn't crash on a typo.
-	assert_almost_eq(ChaseCamera.compute_aim_yaw_offset("", 1.0), 1.0, 1e-6)
+func test_camera_tuning_has_no_aim_flank_yaw_offset() -> void:
+	# Field was removed alongside the repositioning logic. Pinned so a future
+	# .tres edit can't re-introduce it via the editor without also explaining
+	# why the camera would need to reposition again.
+	var t := CameraTuning.new()
+	assert_false(
+		"aim_flank_yaw_offset" in t,
+		"CameraTuning.aim_flank_yaw_offset must not exist — aim mode does not reposition the camera"
+	)
