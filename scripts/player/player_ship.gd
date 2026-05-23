@@ -113,12 +113,12 @@ func _tick_aim_state() -> void:
 		if not World.aim_state.is_empty():
 			World.aim_state = {}
 		return
-	var fire_yaw: float = yaw - PI / 2.0 if aim_side == "port" else yaw + PI / 2.0
-	var aim_yaw: float = fire_yaw + aim_yaw_offset
-	aim_reticle_world = Vector3(
-		global_position.x + sin(aim_yaw) * aim_range,
-		aim_height,
-		global_position.z + cos(aim_yaw) * aim_range,
+	# Single source of truth for the reticle's world position — Combat uses the
+	# same _signed_aim_offset rule when firing, so the visible reticle and the
+	# projectiles agree on what "positive yaw_offset" means (toward the bow on
+	# both flanks). See test_input_aim_state.gd for the pin.
+	aim_reticle_world = _compute_reticle_world(
+		global_position, yaw, aim_side, aim_yaw_offset, aim_range, aim_height,
 	)
 	World.aim_state = {
 		"active": true,
@@ -185,6 +185,33 @@ static func _compute_aim_mode(right_mouse_held: bool, aim_action_pressed: bool) 
 # never-shipped camera flip) is dropped.
 static func _compute_aim_yaw_delta(mouse_dx: float, rate: float) -> float:
 	return mouse_dx * rate
+
+
+# Per-flank sign for the aim yaw offset. `aim_yaw = fire_yaw + offset` rotates
+# the aim direction counterclockwise in world yaw, which points toward the bow
+# on starboard but toward the stern on port (because fire_yaw lives in opposite
+# quadrants). To make positive offset mean "toward the bow" on BOTH sides — a
+# property the reticle test pins — flip the sign for port. Combat applies this
+# helper to projectile aiming so the reticle and the cannonballs agree.
+static func _signed_aim_offset(offset: float, side: String) -> float:
+	return -offset if side == "port" else offset
+
+
+# Pure reticle math — `_tick_aim_state` calls this and Combat replicates the
+# same formula via `_signed_aim_offset`. Exposed static so the unit test can
+# pin the world-frame invariant ("positive offset = toward bow on both flanks")
+# without standing up a full PlayerShip in the scene tree.
+static func _compute_reticle_world(
+	ship_pos: Vector3, ship_yaw: float, side: String,
+	yaw_offset: float, range_m: float, height_m: float,
+) -> Vector3:
+	var fire_yaw: float = ship_yaw - PI / 2.0 if side == "port" else ship_yaw + PI / 2.0
+	var aim_yaw: float = fire_yaw + _signed_aim_offset(yaw_offset, side)
+	return Vector3(
+		ship_pos.x + sin(aim_yaw) * range_m,
+		height_m,
+		ship_pos.z + cos(aim_yaw) * range_m,
+	)
 
 
 # Aim-side selection from camera yaw offset. The JS-derived rule is "fire AWAY
