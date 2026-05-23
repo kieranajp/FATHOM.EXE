@@ -4,7 +4,8 @@
 #   - sailing physics via WindSystem.angle + SailingMath.efficiency
 #   - buoyancy + pitch/roll from Ocean.get_wave_height
 #   - predictive island collision against nodes in the "port" group
-#   - input: W/S (sails), A/D (rudder), 1/2/3 (ammo), Space (aim mode flag)
+#   - input: W/S (sails), A/D (rudder), 1/2/3 (ammo), RMB-hold or Space (aim
+#     mode flag), Q/E (fire flank)
 #
 # Reads (never writes) GameState.ship for ship class / sail level / ammo / etc.
 # (sail_level is owned here in `_sail_level`; mirrored to GameState.ship for HUD.)
@@ -58,6 +59,10 @@ var _ship_mesh: ImmediateMesh
 var _sail_level: float = 2.0
 # Mouse state for camera flank-side selection — referenced by ChaseCamera.
 var last_mouse_x_norm: float = 0.0  # -1..+1 relative to viewport centre
+# Right-mouse-hold drives aim mode. Kept as a field (not Input.is_mouse_button_pressed)
+# so _unhandled_input is the single source of truth and the test helper can
+# pin the OR-logic without faking globals.
+var _right_mouse_held: bool = false
 
 
 func _ready() -> void:
@@ -162,6 +167,13 @@ static func _compute_yaw_delta(rudder_value: float, turn_rate: float, delta: flo
 	return -rudder_value * turn_rate * delta
 
 
+# Aim-mode OR-gate. Either input source activates it; the helper exists purely
+# so a unit test can pin the truth table without instancing PlayerShip + a
+# Viewport. See test/test_input_aim_state.gd.
+static func _compute_aim_mode(right_mouse_held: bool, aim_action_pressed: bool) -> bool:
+	return right_mouse_held or aim_action_pressed
+
+
 # Input. Right-mouse + space are handled in _unhandled_input so the camera can
 # read drag deltas via the same event stream. _physics_process handles held
 # keys via Input.is_action_pressed for frame-rate independent ramping.
@@ -187,10 +199,11 @@ func _tick_input(delta: float) -> void:
 		var center_ease: float = 1.0 - exp(-tuning.rudder_center_rate * delta)
 		rudder = lerpf(rudder, 0.0, center_ease)
 
-	# Aim mode flag. Camera does the actual flank-yaw freeze; T06 will hook
-	# firing to this state.
+	# Aim mode flag. Camera does the actual flank-yaw freeze; firing reads it
+	# via _unhandled_input's LMB branch. RMB-hold is the primary input; Space
+	# is kept as a keyboard alternative for trackpad/keyboard-only players.
 	var was_aim := aim_mode
-	aim_mode = Input.is_action_pressed("aim")
+	aim_mode = _compute_aim_mode(_right_mouse_held, Input.is_action_pressed("aim"))
 	if aim_mode and not was_aim:
 		# Lock the active flank based on where the mouse was last. JS picks port
 		# vs starboard from the camera yaw offset; we use the simpler "which
@@ -208,11 +221,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("ammo_grape"):
 		GameState.ship.active_ammo = "grape"
 
-	# Fire broadsides — Q (port) / E (starboard). Routed through the
-	# CombatSystem node in OpenSea; it owns the projectile spawn + ammo
-	# bookkeeping. We forward via EventBus' fire signals? No — there is no
-	# fire-request signal in the locked vocabulary (per ARCHITECTURE.md). Look
-	# up the system directly via the scene tree.
+	# Right mouse drives aim mode.
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_RIGHT:
+			_right_mouse_held = mb.pressed
+
+	# Fire broadsides — Q (port) / E (starboard). Kept as keyboard alternatives
+	# alongside LMB-while-aiming. Routed through the CombatSystem node in
+	# OpenSea; it owns the projectile spawn + ammo bookkeeping. We forward via
+	# EventBus' fire signals? No — there is no fire-request signal in the
+	# locked vocabulary (per ARCHITECTURE.md). Look up the system directly
+	# via the scene tree.
 	if event.is_action_pressed("fire_port"):
 		_request_fire("port")
 	elif event.is_action_pressed("fire_starboard"):
