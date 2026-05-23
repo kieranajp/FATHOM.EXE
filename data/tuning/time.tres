@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="TimeTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/time_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+seconds_per_in_world_minute = 1.0
