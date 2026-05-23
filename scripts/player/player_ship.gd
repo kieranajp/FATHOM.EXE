@@ -439,3 +439,13 @@ func _build_placeholder_mesh() -> void:
 	# player will see in the first physics tick.
 	_tick_sail_deformation()
 
+
+# Rebuilds the ship mesh and reloads the ShipClass resource when the class is changed at runtime (T38 dev menu).
+func update_ship_class() -> void:
+	var old_visual := get_node_or_null("ShipVisual")
+	if old_visual != null:
+		old_visual.queue_free()
+	
+	ship_class = _load_ship_class(GameState.ship.ship_class_id)
+	_build_placeholder_mesh()
+
