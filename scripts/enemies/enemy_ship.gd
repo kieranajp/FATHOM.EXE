@@ -133,9 +133,13 @@ func _build_mesh() -> void:
 	# player ship — see RenderTuning.line_thickness_world.
 	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
 	var thickness: float = 0.04
+	var ref_dist: float = 0.0
 	if render_tuning != null:
 		thickness = render_tuning.line_thickness_world
-	var inst: MeshInstance3D = _line_model.build_thick_mesh_instance(1.0, thickness)
+		ref_dist = render_tuning.line_thickness_reference_distance
+	# Distant enemies on the horizon get fatter ribbons to stay visible; the
+	# max(1.0, dist/ref) clamp leaves nearby enemies at the authored width.
+	var inst: MeshInstance3D = _line_model.build_thick_mesh_instance(1.0, thickness, 1.5, ref_dist)
 	inst.name = "ShipVisual"
 	_mesh_instance = inst
 	add_child(inst)

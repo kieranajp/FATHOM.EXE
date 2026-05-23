@@ -34,14 +34,15 @@ class_name CombatVisualsTuning extends Tuning
 # disable backface culling, so the entire head vanished (Godot's default
 # CULL_BACK eats both triangles when their normal `cam_right × cam_up`
 # = `cam_basis.z` points away from the camera's look direction). Round-6
-# fixes that on the material side and authors the size as the quad's
-# half-extent in world metres — `projectile_ball_size = 1.0` → 2.0m square.
+# fixed that on the material side and authored the size as the quad's
+# half-extent in world metres. Round-7 reduces the chonk by ~33% — ball
+# was 1.0 (2m square), now 0.67 (1.34m square).
 #
 # Grape pellets get their own (smaller) size so the cluster reads as many
 # tiny dots rather than a single fat blob.
 # `projectile_head_size` is retained for chain-shot tick scaling.
-@export var projectile_ball_size: float = 1.0
-@export var projectile_grape_size: float = 0.5
+@export var projectile_ball_size: float = 0.67
+@export var projectile_grape_size: float = 0.34
 @export var projectile_head_size: float = 0.6
 
 # --- Splashes. ---

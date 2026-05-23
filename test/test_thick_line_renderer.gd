@@ -181,3 +181,51 @@ func test_invalid_edge_indices_are_skipped() -> void:
 	ThickLineRenderer.rebuild(mesh, verts, edges, Vector3(0, 1, 0), 0.1, null)
 	var out := _surface_verts(mesh)
 	assert_eq(out.size(), 6, "Only the valid (0,1) edge produces vertices")
+
+
+# --- Round-7: distance-linear thickness scaling. ---
+#
+# Islands at the chase-cam range (~540m) need fatter ribbons or they subtend
+# <0.1 px and visually disappear. Optional via `reference_distance` argument
+# so close-range overlays (aim cone) and the player ship don't get inflated.
+
+func test_distance_scaling_zero_disables() -> void:
+	# `reference_distance = 0.0` (the default) keeps the authored thickness
+	# everywhere — preserves the existing pre-round-7 behaviour for any
+	# caller that hasn't opted into scaling.
+	var verts := PackedVector3Array([Vector3.ZERO, Vector3(1, 0, 0)])
+	var edges := PackedInt32Array([0, 1])
+	# Camera 100m away. Without scaling, width should still equal thickness.
+	var mesh := _make_mesh()
+	ThickLineRenderer.rebuild(mesh, verts, edges, Vector3(0, 100, 0), 0.1, null, 0.0)
+	var out := _surface_verts(mesh)
+	var width := out[0].distance_to(out[1])
+	assert_almost_eq(width, 0.1, 1e-5, "ref_distance=0 disables scaling")
+
+
+func test_distance_scaling_close_clamps_to_base() -> void:
+	# Camera closer than the reference distance — thickness must stay at the
+	# authored width thanks to the max(1.0, dist/ref) clamp.
+	var verts := PackedVector3Array([Vector3.ZERO, Vector3(1, 0, 0)])
+	var edges := PackedInt32Array([0, 1])
+	var mesh := _make_mesh()
+	# Camera 10m away, reference 15m — dist/ref = 0.67, clamped to 1.0.
+	ThickLineRenderer.rebuild(mesh, verts, edges, Vector3(0.5, 10, 0), 0.06, null, 15.0)
+	var out := _surface_verts(mesh)
+	var width := out[0].distance_to(out[1])
+	assert_almost_eq(width, 0.06, 1e-4,
+		"Camera within reference distance keeps the authored thickness")
+
+
+func test_distance_scaling_far_inflates_linearly() -> void:
+	# Camera 10× the reference distance — ribbon width must be 10× the
+	# authored thickness. Keeps far ribbons at a stable on-screen pixel size.
+	var verts := PackedVector3Array([Vector3.ZERO, Vector3(1, 0, 0)])
+	var edges := PackedInt32Array([0, 1])
+	var mesh := _make_mesh()
+	# Camera 150m away, reference 15m — 10× factor.
+	ThickLineRenderer.rebuild(mesh, verts, edges, Vector3(0.5, 150, 0), 0.06, null, 15.0)
+	var out := _surface_verts(mesh)
+	var width := out[0].distance_to(out[1])
+	assert_almost_eq(width, 0.6, 1e-3,
+		"Camera at 10× reference distance gives 10× ribbon width")

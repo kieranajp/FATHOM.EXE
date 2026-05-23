@@ -40,3 +40,11 @@ func test_tres_resource_loading() -> void:
 		tuning.lighthouse_emission_energy >= 1.5,
 		"Lighthouse emission energy should sit at or above LineModel's default 1.5"
 	)
+	# Round-7: distance-linear thickness scaling for far-away ribbons (islands).
+	# Pin positive so port_mesh.gd has something to feed ThickLineMesh; if a
+	# future ticket drops the property the build silently disables scaling and
+	# islands become invisible again at chase-cam range.
+	assert_true(
+		tuning.line_thickness_reference_distance > 0.0,
+		"Reference distance for thickness scaling must be positive"
+	)
