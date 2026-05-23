@@ -14,6 +14,8 @@ var crew: CrewState                              # post-parity
 var officers: Array[Officer] = []                # post-parity
 var active_rumor: String = ""
 var last_drink_purchased: bool = false
+var day: int = 1
+var hour: int = 8
 
 
 func _ready() -> void:
@@ -37,3 +39,5 @@ func reset_new_game() -> void:
 	officers = []
 	active_rumor = ""
 	last_drink_purchased = false
+	day = 1
+	hour = 8
