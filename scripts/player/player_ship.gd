@@ -280,7 +280,8 @@ func _build_placeholder_mesh() -> void:
 		var wireframe_mat := wireframe_material.duplicate() as ShaderMaterial
 		# Player faction green per ARCHITECTURE.md § "Rendering decisions".
 		var player_green := Color("#33ff33")
-		wireframe_mat.set_shader_parameter("glow_color", player_green)
+		var glow_color_v3 := Vector3(player_green.r, player_green.g, player_green.b)
+		wireframe_mat.set_shader_parameter("glow_color", glow_color_v3)
 		wireframe_mat.set_shader_parameter("glow_intensity", render_tuning.wireframe_glow_intensity)
 		wireframe_mat.set_shader_parameter("edge_thickness", render_tuning.wireframe_edge_thickness)
 		_mesh_instance.material_override = wireframe_mat
