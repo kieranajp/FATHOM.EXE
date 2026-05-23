@@ -26,6 +26,10 @@ TimeSystem="*res://scripts/autoload/time_system.gd"
 AudioBus="*res://scripts/autoload/audio_bus.gd"
 Persistence="*res://scripts/autoload/persistence.gd"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
 [display]
 
 window/size/viewport_width=1920

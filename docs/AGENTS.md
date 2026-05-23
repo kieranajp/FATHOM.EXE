@@ -58,6 +58,7 @@ The JS prototype on `main` is a **playable reference spec**, not a port target. 
 - `godot --path . --headless --quit` exits 0.
 - Smoke-run in editor shows no errors.
 - New systems hook the right signals on EventBus.
+- If the ticket adds a load-bearing function (math curve, state machine, hit detection, save/load), add a corresponding test in `test/test_<system>.gd`. The full GUT suite must exit 0 via `godot --headless --script addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json`.
 
 ## Godot-specific gotchas
 

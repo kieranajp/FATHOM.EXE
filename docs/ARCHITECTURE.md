@@ -359,6 +359,33 @@ Save on `port_docked`. Load on Main scene boot if `Persistence.has_save()`.
 - JS broadside: port = `yaw - PI/2`, starboard = `yaw + PI/2`. Same in Godot.
 - JS wave equation: `sin(x*0.05 + t*1.5) * cos(z*0.05 + t*1.2) * 1.6 + sin(z*0.12 - t*2.0) * 0.5`. Reproduce in `Ocean.get_wave_height`. **Identical formula** unless tuning ticket changes it explicitly.
 
+## Testing
+
+The project uses [GUT](https://github.com/bitwes/Gut) for unit tests, vendored at `addons/gut/`. Philosophy: tests guard load-bearing parts likely to break when extending. **No coverage targets.** Pure helpers, one-shot UI, rendering boilerplate don't need tests.
+
+### Layout
+- `test/` — GUT convention. One file per system: `test_<system>.gd`, classes `extends GutTest`.
+- `.gutconfig.json` — runner config at project root.
+
+### Invocation
+```
+godot --headless --script addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json
+```
+
+### What to test
+- Math curves that downstream systems depend on (wave height, sailing efficiency, port pricing).
+- State transitions future tickets will extend (AI state machine, dock state machine).
+- Hit detection / cylinder intersection.
+- Save/load round-trip.
+
+### What NOT to test
+- Pure rendering paths (we'd be testing Godot itself).
+- One-shot UI Control assembly.
+- Cosmetic helpers.
+
+### When adding a load-bearing function
+Add a `test_<system>.gd` test in the same PR that introduces the function. Reviewers will flag missing tests on load-bearing additions; missing tests on non-load-bearing additions is fine.
+
 ## Things that are NOT in this contract (and shouldn't be assumed)
 
 - Specific node hierarchies inside scenes — tickets own their scenes.
