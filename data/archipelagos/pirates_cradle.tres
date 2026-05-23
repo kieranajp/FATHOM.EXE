@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ArchipelagoDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/archipelago_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "pirates_cradle"
+display_name = "PIRATE'S CRADLE"
+sector = "SEC A-1"
+color = Color(1, 0.8, 0, 1)
+port_ids = Array[String](["port_royal"])
