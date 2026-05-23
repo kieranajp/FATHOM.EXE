@@ -11,3 +11,4 @@ color = Color(1, 0.8, 0, 1)
 port_ids = Array[String](["port_royal", "nassau", "tortuga", "havana"])
 map_position = Vector2(500, 300)
 map_radius = 150.0
+risk_tier = 1

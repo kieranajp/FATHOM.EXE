@@ -37,6 +37,12 @@ func _process(_delta: float) -> void:
 		# Don't spawn while docked at start.
 		return
 	_spawn_initial_group()
+	# T39: a pirate intercept aborts the trip and asks the spawner to drop a
+	# couple of sloops on the player's lap, on top of the normal seed. The
+	# flag is one-shot — consume + clear so the next mount doesn't double up.
+	if World.pending_intercept_count > 0:
+		spawn_pirates_near(_player.global_position, World.pending_intercept_count)
+		World.pending_intercept_count = 0
 	_spawned_initial = true
 
 
@@ -48,13 +54,28 @@ func _spawn_initial_group() -> void:
 	var count: int = rng.randi_range(
 		tuning.spawn_initial_count_min, tuning.spawn_initial_count_max
 	)
+	spawn_pirates_near(_player.global_position, count)
+
+
+# Drops `count` pirate sloops at random bearings around `centre`, each at a
+# tuning-driven distance. Exposed so Travel (T39 intercept) can request an
+# ambush on the player's current position without reaching into combat itself.
+# Returns the number actually spawned (0 if the spawner isn't wired yet).
+func spawn_pirates_near(centre: Vector3, count: int) -> int:
+	if tuning == null or _combat == null or _player == null:
+		return 0
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var spawned: int = 0
 	for _i in count:
 		var angle: float = rng.randf() * TAU
 		var dist: float = rng.randf_range(tuning.spawn_min_distance, tuning.spawn_max_distance)
-		var p: Vector3 = _player.global_position + Vector3(
+		var p: Vector3 = centre + Vector3(
 			sin(angle) * dist, 0.0, cos(angle) * dist,
 		)
 		_combat.spawn_enemy(p, "sloop", "pirate", _player, false)
+		spawned += 1
+	return spawned
 
 
 func _on_archipelago_changed(_arch: ArchipelagoDef) -> void:

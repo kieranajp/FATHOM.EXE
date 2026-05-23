@@ -147,9 +147,13 @@ func test_travel_emits_exactly_one_hud_message() -> void:
 	# wait a frame for the call to land.
 	await get_tree().process_frame
 
-	assert_eq(_hud_messages.size(), 1, "Exactly one hud_message emitted per trip (calm XOR storm)")
+	assert_eq(_hud_messages.size(), 1, "Exactly one hud_message emitted per trip (calm XOR storm XOR intercept)")
 	var msg: Dictionary = _hud_messages[0]
-	if travel_node._is_storm:
+	if travel_node._is_intercept:
+		# T39: intercept takes precedence over storm.
+		assert_eq(msg["text"], "INTERCEPTED BY PIRATES!", "Intercepted trip emits intercept message")
+		assert_eq(msg["severity"], "alert", "Intercept message severity is alert")
+	elif travel_node._is_storm:
 		assert_eq(msg["text"], "Storm-tossed seas slow your passage.", "Storm trip emits storm message")
 		assert_eq(msg["severity"], "warning", "Storm message severity is warning")
 	else:
@@ -251,6 +255,9 @@ func test_travel_target_plumbing_end_to_end() -> void:
 	assert_not_null(travel_instance, "Travel scene mounted under SceneRoot")
 	assert_eq(travel_instance.target_archipelago.id, "spanish_main", "Travel scene received the clicked target, not the fallback")
 
+	# Force the calm path so the route-risk intercept (T39) can't randomly
+	# trip this end-to-end test and send us back to the source archipelago.
+	travel_instance._is_intercept = false
 	# Fast-forward by completing travel directly
 	travel_instance._complete_travel()
 

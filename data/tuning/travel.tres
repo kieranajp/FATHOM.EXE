@@ -8,3 +8,6 @@ storm_chance = 0.3
 calm_duration_seconds = 3.0
 storm_extension_seconds = 2.0
 hours_per_trip = 6
+low_intercept_chance = 0.1
+medium_intercept_chance = 0.25
+high_intercept_chance = 0.45

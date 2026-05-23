@@ -11,9 +11,34 @@ const KNOWN_ARCHIPELAGO_IDS: Array[String] = ["pirates_cradle", "spanish_main", 
 var _archipelagos: Dictionary = {}        # arch_id -> ArchipelagoDef
 var _ports_cache: Dictionary = {}         # arch_id -> Array[PortDef]
 var _tuning: MapTuning
+var _travel_tuning: TravelTuning
 
 var _pulse_timer: float = 0.0
 var _hovered_id: String = ""
+
+
+# Pure helper — maps an ArchipelagoDef.risk_tier (1/2/3) to its short label.
+# Pulled out static so tests can hit it without spinning up the scene.
+static func risk_label_for_tier(risk_tier: int) -> String:
+	match risk_tier:
+		3:
+			return "HIGH"
+		2:
+			return "MED"
+		_:
+			return "LOW"
+
+
+# Pure helper — maps risk_tier to its faction-style colour for the map label.
+# Cyan = safe-ish, amber = caution, red = bad time.
+static func risk_color_for_tier(risk_tier: int) -> Color:
+	match risk_tier:
+		3:
+			return Color("#ff3333")
+		2:
+			return Color("#ffaa33")
+		_:
+			return Color("#33ddff")
 
 
 # Pure hit-test helper — given a click point and an archipelago def, returns
@@ -39,6 +64,7 @@ static func pick_archipelago(point: Vector2, archs: Array) -> String:
 
 func _ready() -> void:
 	_tuning = load("res://data/tuning/map.tres") as MapTuning
+	_travel_tuning = load("res://data/tuning/travel.tres") as TravelTuning
 
 	# Pre-load archipelago data
 	for arch_id in KNOWN_ARCHIPELAGO_IDS:
@@ -141,6 +167,23 @@ func _draw() -> void:
 
 		draw_string(font, center + Vector2(-120, -radius - 20), title_text, HORIZONTAL_ALIGNMENT_LEFT, 240, font_size, text_color)
 		draw_string(font, center + Vector2(-120, -radius - 5), sector_text, HORIZONTAL_ALIGNMENT_LEFT, 240, small_font_size, text_color * 0.8)
+
+		# 3b. Risk-tier label (T39) — sits under the circle so it's legible
+		# against the dimmed unvisited tint, and stays clear of the port dots
+		# inside the circle.
+		var risk_label: String = "RISK: " + risk_label_for_tier(arch.risk_tier)
+		var risk_color: Color = risk_color_for_tier(arch.risk_tier)
+		if not is_visited:
+			risk_color.a = 0.35  # dim risk colour for unvisited sectors too
+		draw_string(font, center + Vector2(-120, radius + 18), risk_label, HORIZONTAL_ALIGNMENT_LEFT, 240, small_font_size, risk_color)
+
+		# 3c. Hover tooltip — show the exact intercept percentage so the
+		# player can weigh the dice before clicking. Anchored below the risk
+		# label so it never collides with the port dots inside the circle.
+		if is_hovered and _travel_tuning != null:
+			var pct: int = int(round(_travel_tuning.intercept_chance_for_tier(arch.risk_tier) * 100.0))
+			var tip_text: String = "PIRATE INTERCEPT: " + str(pct) + "%"
+			draw_string(font, center + Vector2(-120, radius + 34), tip_text, HORIZONTAL_ALIGNMENT_LEFT, 240, small_font_size, risk_color * 0.9)
 
 		# 4. Draw internal Ports
 		var ports: Array[PortDef] = _ports_cache.get(arch_id, [])

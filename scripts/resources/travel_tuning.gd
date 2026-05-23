@@ -16,3 +16,24 @@ class_name TravelTuning extends Tuning
 # In-world hours that the clock advances on fast-travel arrival, regardless of
 # whether the trip rolled calm or storm.
 @export var hours_per_trip: int = 6
+
+# Probability (0..1) that a fast-travel rolls a pirate intercept, looked up by
+# the route's ArchipelagoDef.risk_tier (T39). Intercept aborts the trip,
+# transitions back to OpenSea in the source archipelago, and spawns 1-2 sloops
+# next to the player. Storm and intercept are independent rolls; if both fire,
+# intercept wins (pirates are more dramatic than weather).
+@export_range(0.0, 1.0) var low_intercept_chance: float = 0.10
+@export_range(0.0, 1.0) var medium_intercept_chance: float = 0.25
+@export_range(0.0, 1.0) var high_intercept_chance: float = 0.45
+
+
+# Map an ArchipelagoDef.risk_tier (1/2/3) to its intercept probability. Out-of-
+# range tiers clamp to low so unconfigured archipelagos fail safe.
+func intercept_chance_for_tier(risk_tier: int) -> float:
+	match risk_tier:
+		3:
+			return high_intercept_chance
+		2:
+			return medium_intercept_chance
+		_:
+			return low_intercept_chance
