@@ -66,8 +66,10 @@ func test_projectiles_produce_geometry() -> void:
 	assert_eq(mesh.get_surface_count(), 1, "Projectiles emit a single surface")
 	var arrays := mesh.surface_get_arrays(0)
 	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	# Ball = 2 verts; chain = 6 (1 segment + 2 ticks each side × 2 verts);
-	# grape = 2. So 2 + 6 + 2 = 10 minimum.
+	# Ball/grape = 2 trail + 6 tick verts (three orthogonal arms) = 8 each.
+	# Chain = 1 segment (2) + 2 ticks × 2 ends (4) = 8 total.
+	# 8 + 8 + 8 = 24 minimum. Loose `gte` so future visual tweaks (more arms,
+	# extra trails) don't break this contract test.
 	assert_gte(verts.size(), 10, "All three projectile types emit geometry")
 
 

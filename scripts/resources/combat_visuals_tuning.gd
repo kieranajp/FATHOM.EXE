@@ -24,7 +24,14 @@ class_name CombatVisualsTuning extends Tuning
 # if no faction info is available we fall back to is_player_owned (cyan vs.
 # faction-red). Default colours are duplicated in code as constants for the
 # fallback path.
-@export var projectile_emission_energy: float = 2.0
+@export var projectile_emission_energy: float = 2.5
+
+# Head marker size for ball/grape projectiles, in metres. The "+" tick at the
+# projectile head dominates how prominent the projectile reads at mid-distance.
+# Bumped from ~0.25m (round-4 playtest: cannonballs invisibly tiny mid-flight)
+# to 0.6m. Grape pellets and chain ticks stay smaller — they read as clusters,
+# not single bright points.
+@export var projectile_head_size: float = 0.6
 
 # --- Splashes. ---
 # Horizontal ring at sea level; alpha scales with life / splash_life. The

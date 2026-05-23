@@ -92,13 +92,24 @@ static func _append_quad(
 	if view_len <= 1e-5:
 		return
 	view_dir /= view_len
-	# Perpendicular to both line and view. If the line is collinear with the
-	# view direction the cross product collapses to zero — skip those quads.
+	# Perpendicular to both line and view. When the edge is collinear with the
+	# view direction (e.g. a port's outer sea-level ring viewed from above-and-
+	# distant), the cross product collapses to zero. Falling back to a world-up-
+	# based perpendicular keeps the edge visible — the quad won't billboard
+	# perfectly, but a stable thin ribbon reads infinitely better than a
+	# disappearing line, and at the offending viewing angle the difference is
+	# imperceptible anyway. Was the cause of "island base vanishes at horizon"
+	# in round-4 playtest.
 	var perp: Vector3 = view_dir.cross(line_dir)
 	var perp_len: float = perp.length()
-	if perp_len <= 1e-5:
-		return
-	perp = (perp / perp_len) * half_t
+	if perp_len > 1e-5:
+		perp = (perp / perp_len) * half_t
+	else:
+		var fallback: Vector3 = Vector3.UP.cross(line_dir)
+		if fallback.length() < 1e-5:
+			# Edge is also vertical — pick world-right as last resort.
+			fallback = Vector3.RIGHT.cross(line_dir)
+		perp = fallback.normalized() * half_t
 
 	# Two triangles forming the quad. Winding is irrelevant since we render
 	# with an unshaded material (no cull_back relevance) — but we keep both
