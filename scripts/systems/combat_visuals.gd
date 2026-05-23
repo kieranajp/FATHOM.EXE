@@ -48,9 +48,9 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	if tuning == null:
-		tuning = load("res://data/tuning/combat_visuals.tres") as CombatVisualsTuning
+		tuning = Tunings.combat_visuals
 	if combat_tuning == null:
-		combat_tuning = load("res://data/tuning/combat.tres") as CombatTuning
+		combat_tuning = Tunings.combat
 	if ocean_path != NodePath(""):
 		var on := get_node_or_null(ocean_path)
 		if on is Ocean:
@@ -144,7 +144,7 @@ func _rebuild_lines() -> void:
 	# carries splash rings and spark trails now.
 	var has_sparks := false
 	for d in World.debris:
-		if bool(d.get("is_spark", false)):
+		if d.is_spark:
 			has_sparks = true
 			break
 	if World.splashes.is_empty() and not has_sparks:
@@ -185,7 +185,7 @@ func _rebuild_heads() -> void:
 
 	_heads_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 	for p in World.projectiles:
-		var t: String = String(p.get("type", "ball"))
+		var t: String = p.type
 		if t == "chain":
 			_emit_chain_bola(p, cam_right, cam_up, cam_pos)
 		else:
@@ -193,7 +193,7 @@ func _rebuild_heads() -> void:
 	_heads_mesh.surface_end()
 
 
-func _emit_head_quad(p: Dictionary, t: String, cam_right: Vector3, cam_up: Vector3) -> void:
+func _emit_head_quad(p: Projectile, t: String, cam_right: Vector3, cam_up: Vector3) -> void:
 	var col: Color
 	# `half_extent` is the quad's half-width/half-height in world metres
 	# (configured value in combat_visuals.tres). Final quad is 2× this on each
@@ -230,12 +230,12 @@ func _emit_head_quad(p: Dictionary, t: String, cam_right: Vector3, cam_up: Vecto
 #
 # Round-10 supersedes the round-1..9 chain render which used PRIMITIVE_LINES
 # (1px in Vulkan — basically invisible at 4K, matched the bug report).
-func _emit_chain_bola(p: Dictionary, cam_right: Vector3, cam_up: Vector3, cam_pos: Vector3) -> void:
-	var angle: float = float(p.life) * tuning.chain_visual_speed
+func _emit_chain_bola(p: Projectile, cam_right: Vector3, cam_up: Vector3, cam_pos: Vector3) -> void:
+	var angle: float = p.life * tuning.chain_visual_speed
 	var r: float = tuning.chain_visual_radius
-	var px: float = float(p.x)
-	var py: float = float(p.y)
-	var pz: float = float(p.z)
+	var px: float = p.x
+	var py: float = p.y
+	var pz: float = p.z
 	var p1 := Vector3(px + sin(angle) * r, py, pz + cos(angle) * r)
 	var p2 := Vector3(px - sin(angle) * r, py, pz - cos(angle) * r)
 	var col: Color = CHAIN_COLOR * tuning.projectile_emission_energy
@@ -303,9 +303,8 @@ func _emit_quad_at(centre: Vector3, half_extent: float, col: Color, cam_right: V
 
 # Projectile colour by attacker faction. Falls back to is_player_owned when no
 # attacker is set (e.g. legacy fixtures) or the attacker has no faction info.
-func _color_for_projectile(p: Dictionary) -> Color:
-	var faction_id: String = p.get("faction_id", "player" if bool(p.get("is_player_owned", false)) else "pirate")
-	return Factions.color_for(faction_id)
+func _color_for_projectile(p: Projectile) -> Color:
+	return Factions.color_for(p.faction_id)
 
 
 # --- Splashes ---
@@ -317,10 +316,10 @@ func _emit_splashes() -> void:
 	if segments < 4:
 		segments = 4
 	for s in World.splashes:
-		var sx: float = float(s.x)
-		var sz: float = float(s.z)
-		var r: float = float(s.r)
-		var life: float = float(s.life)
+		var sx: float = s.x
+		var sz: float = s.z
+		var r: float = s.r
+		var life: float = s.life
 		var initial_life: float = combat_tuning.splash_life
 		# Use whatever value lives on the dict; combat_system creates with the
 		# tuning default 0.55s. If a future ticket changes it, we'd ideally read
@@ -356,12 +355,12 @@ func _emit_sparks() -> void:
 	col.a = 1.0
 	_lines_mesh.surface_set_color(col)
 	for d in World.debris:
-		if not bool(d.get("is_spark", false)):
+		if not d.is_spark:
 			continue
-		var tx: float = float(d.x) - float(d.vx) * tuning.projectile_trail_factor
-		var ty: float = float(d.y) - float(d.vy) * tuning.projectile_trail_factor
-		var tz: float = float(d.z) - float(d.vz) * tuning.projectile_trail_factor
-		_lines_mesh.surface_add_vertex(Vector3(float(d.x), float(d.y), float(d.z)))
+		var tx: float = d.x - d.vx * tuning.projectile_trail_factor
+		var ty: float = d.y - d.vy * tuning.projectile_trail_factor
+		var tz: float = d.z - d.vz * tuning.projectile_trail_factor
+		_lines_mesh.surface_add_vertex(Vector3(d.x, d.y, d.z))
 		_lines_mesh.surface_add_vertex(Vector3(tx, ty, tz))
 
 
@@ -379,20 +378,20 @@ func _sync_crates() -> void:
 	# spawn time by CombatSystem._next_id() instead.
 	var live_ids: Dictionary = {}
 	for d in World.debris:
-		if bool(d.get("is_spark", false)):
+		if d.is_spark:
 			continue
-		var id: int = int(d.get("id", 0))
+		var id: int = d.id
 		live_ids[id] = true
 		if not _crate_visuals.has(id):
 			_crate_visuals[id] = _build_crate_visual()
 		var inst: MeshInstance3D = _crate_visuals[id]
 		# Crate y rides the wave surface (or whatever the combat system wrote
 		# into d.y for this frame).
-		inst.position = Vector3(float(d.x), float(d.y), float(d.z))
+		inst.position = Vector3(d.x, d.y, d.z)
 		var b := Basis()
-		b = b.rotated(Vector3.UP, float(d.get("yaw", 0.0)))
-		b = b.rotated(Vector3.RIGHT, float(d.get("pitch", 0.0)))
-		b = b.rotated(Vector3.FORWARD, float(d.get("roll", 0.0)))
+		b = b.rotated(Vector3.UP, d.yaw)
+		b = b.rotated(Vector3.RIGHT, d.pitch)
+		b = b.rotated(Vector3.FORWARD, d.roll)
 		# Scale baked into the basis so we don't double-scale via the mesh's
 		# build_immediate_mesh call (which was already done at 1.0 for the
 		# instance — see _build_crate_visual).

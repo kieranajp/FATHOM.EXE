@@ -21,7 +21,7 @@ var _spawned_initial: bool = false
 
 func _ready() -> void:
 	if tuning == null:
-		tuning = load("res://data/tuning/combat.tres") as CombatTuning
+		tuning = Tunings.combat
 	if combat_path != NodePath(""):
 		_combat = get_node_or_null(combat_path) as CombatSystem
 	if player_path != NodePath(""):

@@ -197,9 +197,9 @@ static func fire_broadside(
 					use_aim, target_x, target_y, target_z,
 					muzzle, elev_rad, tuning,
 				)
-				pellet["attacker"] = attacker
-				pellet["is_player_owned"] = true
-				pellet["faction_id"] = faction_id
+				pellet.attacker = attacker
+				pellet.is_player_owned = true
+				pellet.faction_id = faction_id
 				projectiles_out.append(pellet)
 				EventBus.projectile_spawned.emit(pellet)
 		else:
@@ -210,9 +210,9 @@ static func fire_broadside(
 				use_aim, target_x, target_y, target_z,
 				v_y_fixed, v_horiz_fixed, muzzle, tuning,
 			)
-			p["attacker"] = attacker
-			p["is_player_owned"] = is_player_owned
-			p["faction_id"] = faction_id
+			p.attacker = attacker
+			p.is_player_owned = is_player_owned
+			p.faction_id = faction_id
 			projectiles_out.append(p)
 			EventBus.projectile_spawned.emit(p)
 
@@ -227,7 +227,7 @@ static func _spawn_ball_or_chain(
 	use_aim: bool, target_x: float, target_y: float, target_z: float,
 	v_y_fixed: float, v_horiz_fixed: float, muzzle: float,
 	tuning: CombatTuning,
-) -> Dictionary:
+) -> Projectile:
 	var vx: float
 	var vy: float
 	var vz: float
@@ -260,12 +260,17 @@ static func _spawn_ball_or_chain(
 			life = tuning.ball_life
 			damage = tuning.ball_damage
 
-	return {
-		"x": start_x, "y": start_y, "z": start_z,
-		"vx": vx, "vy": vy, "vz": vz,
-		"life": life, "damage": damage,
-		"type": ammo_type,
-	}
+	var p := Projectile.new()
+	p.x = start_x
+	p.y = start_y
+	p.z = start_z
+	p.vx = vx
+	p.vy = vy
+	p.vz = vz
+	p.life = life
+	p.damage = damage
+	p.type = ammo_type
+	return p
 
 
 static func _spawn_grape_pellet(
@@ -274,7 +279,7 @@ static func _spawn_grape_pellet(
 	use_aim: bool, target_x: float, target_y: float, target_z: float,
 	muzzle: float, elev_rad: float,
 	tuning: CombatTuning,
-) -> Dictionary:
+) -> Projectile:
 	var rand_spread: float = (randf() - 0.5) * tuning.grape_spread
 	var rand_vy: float = (randf() - 0.5) * tuning.grape_vy_jitter
 	var speed_var: float = lerpf(tuning.grape_speed_min, tuning.grape_speed_max, randf())
@@ -304,9 +309,14 @@ static func _spawn_grape_pellet(
 		vy = v_y_pellet
 		vz = cos(ship_yaw) * ship_speed + cos(ball_yaw) * v_horiz
 
-	return {
-		"x": start_x, "y": start_y, "z": start_z,
-		"vx": vx, "vy": vy, "vz": vz,
-		"life": tuning.grape_life, "damage": tuning.grape_damage,
-		"type": "grape",
-	}
+	var p := Projectile.new()
+	p.x = start_x
+	p.y = start_y
+	p.z = start_z
+	p.vx = vx
+	p.vy = vy
+	p.vz = vz
+	p.life = tuning.grape_life
+	p.damage = tuning.grape_damage
+	p.type = "grape"
+	return p

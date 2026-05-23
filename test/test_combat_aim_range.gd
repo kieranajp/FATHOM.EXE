@@ -36,7 +36,7 @@ func _player_state() -> Dictionary:
 # Integrate a projectile forward until y <= 0 (splash) or life runs out. Returns
 # the (x, z) at the splash, or (NaN, NaN) if the projectile never landed.
 # Step is small enough to keep error well under the ±10m tolerance.
-func _integrate_until_splash(p: Dictionary) -> Vector2:
+func _integrate_until_splash(p: Projectile) -> Vector2:
 	const DT: float = 0.01
 	var t: float = 0.0
 	var x: float = p.x
@@ -108,7 +108,7 @@ func test_aim_range_max_reaches_reticle_at_high_elevation() -> void:
 	# We don't require y<=0 here because the reticle is above sea level — instead
 	# integrate until life ends and check the projectile passed within tolerance
 	# of the reticle XZ at SOME point.
-	var p: Dictionary = projectiles[0]
+	var p: Projectile = projectiles[0]
 	const DT: float = 0.01
 	var t: float = 0.0
 	var x: float = p.x

@@ -120,7 +120,7 @@ func _build_mesh() -> void:
 	# authored coords win. Faction tint comes from the colour override above.
 	# ThickLineMesh gives the same resolution-independent line width as the
 	# player ship — see RenderTuning.line_thickness_world.
-	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
+	var render_tuning := Tunings.render
 	var thickness: float = 0.04
 	var ref_dist: float = 0.0
 	if render_tuning != null:

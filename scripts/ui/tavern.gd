@@ -5,7 +5,7 @@
 extends Control
 
 const RUMORS_DIR := "res://data/rumors/"
-const TUNING_PATH := "res://data/tuning/tavern.tres"
+
 
 @onready var _message_label: Label = $Panel/V/Console/ConsoleV/Message
 @onready var _gold_label: Label = $Panel/V/Footer/Gold
@@ -19,9 +19,8 @@ var _rumor_pool: Array[RumorDef] = []
 
 func _ready() -> void:
 	# Load tuning resource
-	if ResourceLoader.exists(TUNING_PATH):
-		_tuning = load(TUNING_PATH) as TavernTuning
-	else:
+	_tuning = Tunings.tavern
+	if not _tuning:
 		_tuning = TavernTuning.new() # fallback defaults
 		
 	# Populate buttons label with correct cost

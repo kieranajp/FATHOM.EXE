@@ -28,7 +28,7 @@ var _fallback_camera: Camera3D
 
 func _ready() -> void:
 	if tuning == null:
-		tuning = load("res://data/tuning/world.tres") as WorldTuning
+		tuning = Tunings.world
 
 	_material = StandardMaterial3D.new()
 	_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED

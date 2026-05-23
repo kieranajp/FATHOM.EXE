@@ -76,7 +76,7 @@ var _right_mouse_held: bool = false
 
 func _ready() -> void:
 	if tuning == null:
-		tuning = load("res://data/tuning/sailing.tres") as SailingTuning
+		tuning = Tunings.sailing
 
 	ship_class = ShipClass.load_or_default(GameState.ship.ship_class_id)
 	_sail_level = GameState.ship.sail_level
@@ -368,7 +368,7 @@ func _request_fire(side: String) -> void:
 var _combat_tuning_cached: CombatTuning
 func _combat_tuning() -> CombatTuning:
 	if _combat_tuning_cached == null:
-		_combat_tuning_cached = load("res://data/tuning/combat.tres") as CombatTuning
+		_combat_tuning_cached = Tunings.combat
 	return _combat_tuning_cached
 
 
@@ -526,7 +526,7 @@ func _build_placeholder_mesh() -> void:
 	# Player ship bumps emission energy above the LineModel default — see
 	# RenderTuning.player_ship_emission_energy. ThickLineMesh gives us real
 	# pixel thickness on top of the emissive bloom.
-	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
+	var render_tuning := Tunings.render
 	var emission_energy: float = 1.5
 	var thickness: float = 0.04
 	var ref_dist: float = 0.0
