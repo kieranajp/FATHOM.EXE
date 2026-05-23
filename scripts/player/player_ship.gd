@@ -390,9 +390,13 @@ func _load_ship_class(class_id: String) -> ShipClass:
 
 
 # Player visual: a LineModel rendered as PRIMITIVE_LINES — pentagonal hull,
-# mast, billowing sail with ribbing. Coordinates ported verbatim from the JS
-# prototype's `dinghy` model (see data/models/dinghy.tres + the comment on
-# that file for the JS→Godot Z-flip).
+# masts, billowing sails with ribbing. Coordinates ported verbatim from the
+# JS prototype's per-class models (see data/models/*.tres + the comment on
+# each file for the JS→Godot Z-flip).
+#
+# Selection is class-based: we load `data/models/<ship_class_id>.tres`. If
+# the file is missing (e.g. a future class added to ShipClass before its
+# model is ported) we fall back to the dinghy so the player isn't invisible.
 #
 # `_mesh_instance` continues to point at the resulting MeshInstance3D so
 # downstream code (and future tickets) that needs a "ship visual" handle
@@ -403,9 +407,14 @@ func _load_ship_class(class_id: String) -> ShipClass:
 # export); it is intentionally unused here — LineModel ships its own
 # unshaded-emissive StandardMaterial3D.
 func _build_placeholder_mesh() -> void:
-	var model := load("res://data/models/dinghy.tres") as LineModel
+	var class_id: String = GameState.ship.ship_class_id
+	var model_path := "res://data/models/" + class_id + ".tres"
+	if not ResourceLoader.exists(model_path):
+		push_warning("PlayerShip: ship model %s missing, falling back to dinghy" % class_id)
+		model_path = "res://data/models/dinghy.tres"
+	var model := load(model_path) as LineModel
 	if model == null:
-		push_warning("PlayerShip: dinghy model failed to load")
+		push_warning("PlayerShip: ship model failed to load (%s)" % model_path)
 		return
 
 	# Player faction green per ARCHITECTURE.md § "Rendering decisions". Override
