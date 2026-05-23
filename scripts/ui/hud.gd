@@ -8,6 +8,12 @@
 # That keeps the parent (Main) ignorant of HUD existence, which is the right
 # direction of dependency.
 #
+# Layout follows the JS prototype's terminal-panel aesthetic — bordered
+# PanelContainers per region (NAVIGATION / STATUS / SAILS / BATTLE TELEMETRY /
+# CONTROLS) plus the centre overlays (alert, target, dock prompt) and the
+# bottom-right clock. The data wiring is unchanged from T07; only the visual
+# layout differs.
+#
 # Defensive against T06 (combat / active_target / reload timers) and T11 (real
 # clock ticks): renders sensible defaults until those land.
 #
@@ -24,53 +30,61 @@ const ARCHIPELAGO_DIR := "res://data/archipelagos/"
 
 @export var tuning: HudTuning
 
-# --- Sailing telemetry (left panel) ---
+# --- NAVIGATION panel (top-left) ---
 @onready var _root: Control = $Root
-@onready var _ship_name_label: Label = $Root/Left/ShipName
-@onready var _hp_bar: Control = $Root/Left/Sailing/HPRow/Bar
-@onready var _hp_fill: ColorRect = $Root/Left/Sailing/HPRow/Bar/Fill
-@onready var _hp_value: Label = $Root/Left/Sailing/HPRow/Value
-@onready var _speed_bar: Control = $Root/Left/Sailing/SpeedRow/Bar
-@onready var _speed_fill: ColorRect = $Root/Left/Sailing/SpeedRow/Bar/Fill
-@onready var _speed_value: Label = $Root/Left/Sailing/SpeedRow/Value
-@onready var _throttle_bar: Control = $Root/Left/Sailing/ThrottleRow/Bar
-@onready var _throttle_fill: ColorRect = $Root/Left/Sailing/ThrottleRow/Bar/Fill
-@onready var _throttle_value: Label = $Root/Left/Sailing/ThrottleRow/Value
-@onready var _heading_value: Label = $Root/Left/Sailing/HeadingRow/Value
-@onready var _wind_value: Label = $Root/Left/Sailing/WindRow/Value
-@onready var _wind_needle: ColorRect = $Root/Left/Sailing/WindRow/Compass/Needle
-@onready var _tacking_value: Label = $Root/Left/Sailing/TackingRow/Value
+@onready var _ship_name_value: Label = $Root/NavPanel/V/ShipRow/Value
+@onready var _speed_value: Label = $Root/NavPanel/V/SpeedRow/Value
+@onready var _speed_bar: Control = $Root/NavPanel/V/SpeedBar
+@onready var _speed_fill: ColorRect = $Root/NavPanel/V/SpeedBar/Fill
+@onready var _course_value: Label = $Root/NavPanel/V/CourseRow/Value
 
-# --- Combat readiness (right panel) ---
-@onready var _reload_port_bar: Control = $Root/Right/Combat/PortReloadRow/Bar
-@onready var _reload_port_fill: ColorRect = $Root/Right/Combat/PortReloadRow/Bar/Fill
-@onready var _reload_port_value: Label = $Root/Right/Combat/PortReloadRow/Value
-@onready var _reload_stbd_bar: Control = $Root/Right/Combat/StbdReloadRow/Bar
-@onready var _reload_stbd_fill: ColorRect = $Root/Right/Combat/StbdReloadRow/Bar/Fill
-@onready var _reload_stbd_value: Label = $Root/Right/Combat/StbdReloadRow/Value
-@onready var _ammo_ball_name: Label = $Root/Right/Combat/AmmoBox/BallRow/Name
-@onready var _ammo_ball_value: Label = $Root/Right/Combat/AmmoBox/BallRow/Value
-@onready var _ammo_chain_name: Label = $Root/Right/Combat/AmmoBox/ChainRow/Name
-@onready var _ammo_chain_value: Label = $Root/Right/Combat/AmmoBox/ChainRow/Value
-@onready var _ammo_grape_name: Label = $Root/Right/Combat/AmmoBox/GrapeRow/Name
-@onready var _ammo_grape_value: Label = $Root/Right/Combat/AmmoBox/GrapeRow/Value
+# --- STATUS panel (top-right) ---
+@onready var _purse_value: Label = $Root/StatusPanel/V/PurseRow/Value
+@onready var _zone_value: Label = $Root/StatusPanel/V/ZoneRow/Value
+@onready var _sector_value: Label = $Root/StatusPanel/V/SectorRow/Value
+@onready var _compass: Control = $Root/StatusPanel/V/WindRow/Compass
+@onready var _wind_value: Label = $Root/StatusPanel/V/WindRow/WindReadout/WindValue
+@onready var _tacking_value: Label = $Root/StatusPanel/V/WindRow/WindReadout/Tacking
 
-# --- Top-left: gold + location ---
-@onready var _gold_label: Label = $Root/TopLeft/Gold
-@onready var _location_label: Label = $Root/TopLeft/Location
+# --- SAILS panel (middle-left, narrow vertical) ---
+@onready var _sails_track: Control = $Root/SailsPanel/V/Body/Track
+@onready var _sails_fill: ColorRect = $Root/SailsPanel/V/Body/Track/Fill
+@onready var _sails_labels: VBoxContainer = $Root/SailsPanel/V/Body/Labels
+
+# Mapping: sail_level 4 == FULL (top label), 0 == ANCH (bottom label). Indexed
+# top-down to match the VBox children order in the scene.
+const _SAILS_LABEL_COUNT := 5
+const _SAILS_ACTIVE_COLOR := Color("#33ff33")
+const _SAILS_INACTIVE_COLOR := Color(0.2, 1, 0.4, 0.4)
+
+# --- BATTLE TELEMETRY panel ---
+@onready var _hp_value: Label = $Root/BattlePanel/V/HPRow/Value
+@onready var _hp_bar: Control = $Root/BattlePanel/V/HPBar
+@onready var _hp_fill: ColorRect = $Root/BattlePanel/V/HPBar/Fill
+@onready var _reload_port_value: Label = $Root/BattlePanel/V/PortRow/Value
+@onready var _reload_port_bar: Control = $Root/BattlePanel/V/PortBar
+@onready var _reload_port_fill: ColorRect = $Root/BattlePanel/V/PortBar/Fill
+@onready var _reload_stbd_value: Label = $Root/BattlePanel/V/StbdRow/Value
+@onready var _reload_stbd_bar: Control = $Root/BattlePanel/V/StbdBar
+@onready var _reload_stbd_fill: ColorRect = $Root/BattlePanel/V/StbdBar/Fill
+@onready var _ammo_ball_name: Label = $Root/BattlePanel/V/BallRow/Name
+@onready var _ammo_ball_value: Label = $Root/BattlePanel/V/BallRow/Value
+@onready var _ammo_chain_name: Label = $Root/BattlePanel/V/ChainRow/Name
+@onready var _ammo_chain_value: Label = $Root/BattlePanel/V/ChainRow/Value
+@onready var _ammo_grape_name: Label = $Root/BattlePanel/V/GrapeRow/Name
+@onready var _ammo_grape_value: Label = $Root/BattlePanel/V/GrapeRow/Value
 
 # --- Top-centre alerts banner ---
-@onready var _alert_panel: Panel = $Root/Alert
+@onready var _alert_panel: PanelContainer = $Root/Alert
 @onready var _alert_label: Label = $Root/Alert/Label
 @onready var _alert_timer: Timer = $Root/Alert/Timer
 
 # --- Top-centre target panel ---
-@onready var _target_panel: Panel = $Root/Target
+@onready var _target_panel: PanelContainer = $Root/Target
 @onready var _target_name: Label = $Root/Target/V/Name
 @onready var _target_hp_text: Label = $Root/Target/V/HPRow/Value
 @onready var _target_hp_bar: Control = $Root/Target/V/HPRow/Bar
 @onready var _target_hp_fill: ColorRect = $Root/Target/V/HPRow/Bar/Fill
-@onready var _target_panel_bg: ColorRect = $Root/Target/Border
 
 # --- Bottom-centre dock prompt ---
 @onready var _dock_prompt: Label = $Root/DockPrompt
@@ -85,9 +99,9 @@ const ARCHIPELAGO_DIR := "res://data/archipelagos/"
 @onready var _inventory_screen: Control = $Inventory
 
 var _low_hp_flash_t: float = 0.0
-const _BASE_HP_COLOR: Color = Color("#33ff33")
-const _LOW_HP_COLOR: Color = Color("#ff5555")
-const _NEUTRAL_COLOR: Color = Color("#cccccc")
+const _BASE_HP_COLOR: Color = Color("#ff5555")  # battle-panel HP bar is red-themed
+const _LOW_HP_COLOR: Color = Color("#ff3333")
+const _NEUTRAL_COLOR: Color = Color(0.85, 0.85, 0.85, 0.9)
 
 
 func _ready() -> void:
@@ -131,28 +145,19 @@ func _process(delta: float) -> void:
 	# Inventory keeps refreshing independently (always visible/hidden); the
 	# main HUD body is skipped when docked.
 	if _root.visible:
-		_tick_sailing_panel()
+		_tick_nav_panel()
+		_tick_status_panel()
+		_tick_sails_panel()
 		_tick_combat_panel()
 		_tick_target_panel()
-		_tick_gold()
 		_tick_low_hp_flash(delta)
 		_refresh_clock()
 
 
-# -------- Sailing telemetry --------
+# -------- NAVIGATION panel --------
 
-func _tick_sailing_panel() -> void:
-	var ship_state: PlayerState = GameState.ship
+func _tick_nav_panel() -> void:
 	var player := _find_player()
-
-	# Hull HP.
-	var max_hp: float = _player_max_hp(ship_state)
-	var hp: float = ship_state.health
-	_hp_value.text = "%d / %d" % [int(round(hp)), int(round(max_hp))]
-	var hp_frac: float = clampf(hp / max_hp, 0.0, 1.0) if max_hp > 0.0 else 0.0
-	_set_fill_fraction(_hp_fill, _hp_bar, hp_frac)
-	var low := hp_frac < tuning.low_hp_threshold
-	_hp_fill.color = _LOW_HP_COLOR if low else _BASE_HP_COLOR
 
 	# Speed.
 	if player != null:
@@ -165,27 +170,97 @@ func _tick_sailing_panel() -> void:
 		_speed_value.text = "-- KTS"
 		_set_fill_fraction(_speed_fill, _speed_bar, 0.0)
 
-	# Sail throttle (vertical).
-	var sail_frac: float = clampf(ship_state.sail_level / 4.0, 0.0, 1.0)
-	_throttle_value.text = "%d / 4" % int(round(ship_state.sail_level))
-	_set_fill_fraction(_throttle_fill, _throttle_bar, sail_frac)
-
-	# Heading.
+	# Course/heading.
 	var yaw: float = player.yaw if player != null else 0.0
 	var heading_deg := yaw_to_compass_deg(yaw)
-	_heading_value.text = "%03d°  %s  HEADING" % [heading_deg, compass_label(heading_deg)]
+	_course_value.text = "%03d° %s" % [heading_deg, compass_label(heading_deg)]
 
-	# Wind label + needle.
+
+# -------- STATUS panel (purse + zone + wind telemetry) --------
+
+func _tick_status_panel() -> void:
+	# Purse.
+	_purse_value.text = "%d D" % GameState.ship.gold
+
+	# Wind label + needle. Needle rotation matches the regression-pinned
+	# convention; the compass dial widget interprets 0 == straight up = wind
+	# from ahead.
+	var player := _find_player()
+	var yaw: float = player.yaw if player != null else 0.0
 	var wind_deg := angle_to_compass_deg(WindSystem.angle)
-	_wind_value.text = "%d KTS  %s" % [int(round(WindSystem.speed)), compass_label(wind_deg)]
-	# The needle pivot is set in the scene at the centre of the compass.
-	_wind_needle.rotation = wind_needle_rotation(yaw, WindSystem.angle)
+	_wind_value.text = "%d KTS %s" % [int(round(WindSystem.speed)), compass_label(wind_deg)]
+	if _compass.has_method("set_needle_angle"):
+		_compass.call("set_needle_angle", wind_needle_rotation(yaw, WindSystem.angle))
 
 	# Sailing status (efficiency-tier text + colour).
 	var efficiency: float = SailingMath.efficiency(yaw, WindSystem.angle)
 	var status := sailing_status(efficiency)
 	_tacking_value.text = status.text
 	_tacking_value.add_theme_color_override("font_color", status.color)
+
+
+# -------- SAILS panel --------
+
+func _tick_sails_panel() -> void:
+	var ship_state: PlayerState = GameState.ship
+	var sail_level: float = clampf(ship_state.sail_level, 0.0, 4.0)
+	var sail_frac: float = sail_level / 4.0
+
+	# Vertical fill from the bottom up.
+	var bg_size := _sails_track.size
+	var fill_h := bg_size.y * sail_frac
+	_sails_fill.size = Vector2(bg_size.x, fill_h)
+	_sails_fill.position = Vector2(0.0, bg_size.y - fill_h)
+
+	# Highlight the active label. sail_level 4 == top label (FULL); 0 == bottom
+	# (ANCH). Round to nearest int so a 1.7 sail-level highlights "3/4".
+	var active_idx := _SAILS_LABEL_COUNT - 1 - int(round(sail_level))
+	active_idx = clampi(active_idx, 0, _SAILS_LABEL_COUNT - 1)
+	for i in _SAILS_LABEL_COUNT:
+		var lbl := _sails_labels.get_child(i) as Label
+		if lbl == null:
+			continue
+		var active := i == active_idx
+		lbl.add_theme_color_override("font_color", _SAILS_ACTIVE_COLOR if active else _SAILS_INACTIVE_COLOR)
+		lbl.text = ("> " + _sails_label_text(i)) if active else ("  " + _sails_label_text(i))
+
+
+func _sails_label_text(i: int) -> String:
+	match i:
+		0: return "FULL"
+		1: return "3/4"
+		2: return "HALF"
+		3: return "1/4"
+		4: return "ANCH"
+		_: return ""
+
+
+# -------- BATTLE TELEMETRY panel --------
+
+func _tick_combat_panel() -> void:
+	var ship_state: PlayerState = GameState.ship
+
+	# Hull HP.
+	var max_hp: float = _player_max_hp(ship_state)
+	var hp: float = ship_state.health
+	_hp_value.text = "%d / %d" % [int(round(hp)), int(round(max_hp))]
+	var hp_frac: float = clampf(hp / max_hp, 0.0, 1.0) if max_hp > 0.0 else 0.0
+	_set_fill_fraction(_hp_fill, _hp_bar, hp_frac)
+	var low := hp_frac < tuning.low_hp_threshold
+	_hp_fill.color = _LOW_HP_COLOR if low else _BASE_HP_COLOR
+
+	# Reload bars (still stubbed at READY until T06 lands).
+	var port_reload := _read_reload("port")
+	var stbd_reload := _read_reload("starboard")
+	_apply_reload(_reload_port_bar, _reload_port_fill, _reload_port_value, port_reload)
+	_apply_reload(_reload_stbd_bar, _reload_stbd_fill, _reload_stbd_value, stbd_reload)
+
+	# Ammo.
+	var active: String = ship_state.active_ammo
+	var ammo: Dictionary = ship_state.ammo
+	_set_ammo_row(_ammo_ball_name, _ammo_ball_value, "BALL (180m):", ammo.get("ball", 0), active == "ball")
+	_set_ammo_row(_ammo_chain_name, _ammo_chain_value, "CHAIN (100m):", ammo.get("chain", 0), active == "chain")
+	_set_ammo_row(_ammo_grape_name, _ammo_grape_value, "GRAPE (60m):", ammo.get("grape", 0), active == "grape")
 
 
 func _tick_low_hp_flash(delta: float) -> void:
@@ -195,7 +270,6 @@ func _tick_low_hp_flash(delta: float) -> void:
 	if hp_frac < tuning.low_hp_threshold:
 		_low_hp_overlay.visible = true
 		_low_hp_flash_t += delta
-		# Subtle pulse: alpha 0.10..0.30 at 1.5Hz. Not a seizure simulator.
 		var pulse := (sin(_low_hp_flash_t * TAU * 1.5) + 1.0) * 0.5
 		var alpha := 0.10 + pulse * 0.20
 		var c := _LOW_HP_COLOR
@@ -204,22 +278,6 @@ func _tick_low_hp_flash(delta: float) -> void:
 	else:
 		_low_hp_overlay.visible = false
 		_low_hp_flash_t = 0.0
-
-
-# -------- Combat readiness panel --------
-
-func _tick_combat_panel() -> void:
-	var port_reload := _read_reload("port")
-	var stbd_reload := _read_reload("starboard")
-	_apply_reload(_reload_port_bar, _reload_port_fill, _reload_port_value, port_reload)
-	_apply_reload(_reload_stbd_bar, _reload_stbd_fill, _reload_stbd_value, stbd_reload)
-
-	var ship_state: PlayerState = GameState.ship
-	var active: String = ship_state.active_ammo
-	var ammo: Dictionary = ship_state.ammo
-	_set_ammo_row(_ammo_ball_name, _ammo_ball_value, "BALL  (180m)", ammo.get("ball", 0), active == "ball")
-	_set_ammo_row(_ammo_chain_name, _ammo_chain_value, "CHAIN (100m)", ammo.get("chain", 0), active == "chain")
-	_set_ammo_row(_ammo_grape_name, _ammo_grape_value, "GRAPE  (60m)", ammo.get("grape", 0), active == "grape")
 
 
 # Returns a fraction in [0, 1] where 1.0 == ready. T06 owns reload timers;
@@ -232,8 +290,10 @@ func _apply_reload(bar: Control, fill: ColorRect, value_label: Label, frac: floa
 	_set_fill_fraction(fill, bar, frac)
 	if frac >= 1.0:
 		value_label.text = "READY"
+		value_label.add_theme_color_override("font_color", Color("#00ffcc"))
 	else:
 		value_label.text = "%d%%" % int(round(frac * 100.0))
+		value_label.add_theme_color_override("font_color", Color("#ffcc00"))
 
 
 func _set_ammo_row(name_label: Label, value_label: Label, base_text: String, count: int, active: bool) -> void:
@@ -292,36 +352,30 @@ func _tick_target_panel() -> void:
 	_target_hp_text.add_theme_color_override("font_color", faction.color)
 	_set_fill_fraction(_target_hp_fill, _target_hp_bar, hp_frac)
 	_target_hp_fill.color = faction.color
-	_target_panel_bg.color = Color(faction.color.r, faction.color.g, faction.color.b, 0.18)
 
 
-# -------- Gold + location --------
-
-func _tick_gold() -> void:
-	_gold_label.text = "%d  D" % GameState.ship.gold
-
+# -------- Zone/sector + clock + ship name (event-driven, not per-frame) --------
 
 func _refresh_location() -> void:
 	var arch_id := GameState.current_archipelago_id
 	if arch_id == "":
-		_location_label.text = "OPEN SEA"
+		_zone_value.text = "OPEN SEA"
+		_sector_value.text = "OPEN SEA"
 		return
 	var arch_path := ARCHIPELAGO_DIR + arch_id + ".tres"
 	if ResourceLoader.exists(arch_path):
 		var arch := load(arch_path) as ArchipelagoDef
 		if arch != null:
-			_location_label.text = "%s — %s" % [arch.display_name, arch.sector]
+			_zone_value.text = arch.display_name
+			_sector_value.text = arch.sector if arch.sector != "" else "OPEN SEA"
 			return
-	_location_label.text = "OPEN SEA"
+	_zone_value.text = "OPEN SEA"
+	_sector_value.text = "OPEN SEA"
 
-
-# -------- Clock --------
 
 func _refresh_clock() -> void:
 	_clock_label.text = "DAY %d   %02d:00" % [TimeSystem.day, TimeSystem.hour]
 
-
-# -------- Ship name (static; refreshed on archipelago / load) --------
 
 func _refresh_ship_name() -> void:
 	var ship_state: PlayerState = GameState.ship
@@ -331,7 +385,7 @@ func _refresh_ship_name() -> void:
 		var sc := load(path) as ShipClass
 		if sc != null and sc.display_name != "":
 			class_label = sc.display_name.to_upper()
-	_ship_name_label.text = "%s  (%s)" % [ship_state.ship_name.to_upper(), class_label]
+	_ship_name_value.text = "%s (%s)" % [ship_state.ship_name.to_upper(), class_label]
 
 
 # -------- Signal handlers --------
