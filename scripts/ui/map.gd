@@ -111,9 +111,57 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 
 
+# Pure helper to evaluate travel restrictions. Parametric and side-effect free for easy unit testing.
+static func check_travel_lockout(player_pos: Vector3, enemies: Array, active_port: PortDef, tuning: TravelTuning) -> Dictionary:
+	if active_port != null:
+		return {"allowed": false, "reason": "TOO_CLOSE_TO_PORT"}
+	
+	var lockout_radius := 160.0
+	if tuning != null:
+		lockout_radius = tuning.travel_lockout_hostile_radius
+		
+	for enemy in enemies:
+		if enemy == null:
+			continue
+		
+		var enemy_health: float = 100.0
+		var enemy_pos := Vector3.ZERO
+		if enemy is Dictionary:
+			enemy_health = float(enemy.get("health", 100.0))
+			enemy_pos = enemy.get("global_position", enemy.get("position", Vector3.ZERO))
+		else:
+			enemy_health = enemy.health if "health" in enemy else 100.0
+			if "global_position" in enemy:
+				enemy_pos = enemy.global_position
+			elif "position" in enemy:
+				enemy_pos = enemy.position
+		
+		if enemy_health > 0:
+			var dist := player_pos.distance_to(enemy_pos)
+			if dist <= lockout_radius:
+				return {"allowed": false, "reason": "HOSTILES_NEARBY"}
+				
+	return {"allowed": true, "reason": ""}
+
+
 func _handle_archipelago_click(arch_id: String) -> void:
 	if arch_id == GameState.current_archipelago_id:
 		return  # Already there
+
+	# Proximity Lockout checks (Issue 40)
+	var player_pos := Vector3.ZERO
+	var root := get_tree().root
+	var player := root.find_child("PlayerShip", true, false) as Node3D
+	if player != null:
+		player_pos = player.global_position
+
+	var lockout := check_travel_lockout(player_pos, World.enemies, World.active_port, _travel_tuning)
+	if not lockout.allowed:
+		if lockout.reason == "TOO_CLOSE_TO_PORT":
+			EventBus.hud_message.emit("CANNOT TRAVEL: TOO CLOSE TO PORT", "warning")
+		elif lockout.reason == "HOSTILES_NEARBY":
+			EventBus.hud_message.emit("CANNOT TRAVEL: HOSTILES NEARBY", "warning")
+		return  # Block fast travel and keep map open
 
 	var arch: ArchipelagoDef = _archipelagos.get(arch_id)
 	if arch != null:
