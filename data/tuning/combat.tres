@@ -63,3 +63,4 @@ splash_max_radius_base = 3.5
 splash_max_radius_jitter = 1.5
 splash_life = 0.55
 debris_count_on_hit = 8
+enemy_roll_factor = 0.05

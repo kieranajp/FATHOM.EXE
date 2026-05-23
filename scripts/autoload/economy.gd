@@ -15,30 +15,34 @@ extends Node
 const SHIPS_DIR := "res://data/ships/"
 const TUNING_PATH := "res://data/tuning/economy.tres"
 
-# Inline base prices keyed by commodity id. Mirrors JS BASE_PRICES table.
-# Authoritative source is data/commodities/*.tres; this map is the runtime
-# lookup for pricing math and exists so we don't reload all .tres each tick.
-const BASE_PRICES: Dictionary = {
-	"rum": 20,
-	"sugar": 15,
-	"tobacco": 25,
-	"spices": 30,
-	"coffee": 22,
-	"cocoa": 18,
-	"textiles": 28,
-	"wood": 12,
-}
-
+const COMMODITY_DIR := "res://data/commodities/"
 const AMMO_ITEMS: Array[String] = ["ball", "chain", "grape"]
 
 var _tuning: EconomyTuning
+var _base_prices: Dictionary = {}
 
 
 func _ready() -> void:
+	_load_base_prices()
 	if ResourceLoader.exists(TUNING_PATH):
 		_tuning = load(TUNING_PATH) as EconomyTuning
 	else:
 		_tuning = EconomyTuning.new()
+
+
+func _load_base_prices() -> void:
+	_base_prices.clear()
+	var dir := DirAccess.open(COMMODITY_DIR)
+	if dir != null:
+		dir.list_dir_begin()
+		var fname := dir.get_next()
+		while fname != "":
+			if not dir.current_is_dir() and fname.ends_with(".tres"):
+				var path := COMMODITY_DIR + fname
+				var c := load(path) as Commodity
+				if c != null:
+					_base_prices[c.id] = c.base_price
+			fname = dir.get_next()
 
 
 func get_tuning() -> EconomyTuning:
@@ -71,7 +75,7 @@ func calculate_port_prices(port: PortDef) -> Dictionary:
 	var prices: Dictionary = {}
 	for item in port.base_prices:
 		var cfg: Dictionary = port.base_prices[item]
-		var base: int = BASE_PRICES.get(item, cfg.get("buy", 20))
+		var base: int = _base_prices.get(item, cfg.get("buy", 20))
 		var is_producer: bool = cfg.get("is_producer", false)
 		var is_consumer: bool = cfg.get("is_consumer", false)
 		var buy_mult := t.default_buy_mult
