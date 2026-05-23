@@ -46,8 +46,8 @@ var reload_stbd: float = 0.0
 # Aim-mode reticle params. Mouse drag while aim_mode is held adjusts these,
 # clamped to the limits in CombatTuning. Combat reads them via the aim dict.
 var aim_yaw_offset: float = 0.0   # ±π/4
-var aim_range: float = 120.0      # 30..240
-var aim_height: float = 0.0       # -10..30
+var aim_range: float = 80.0       # CombatTuning.aim_range_min..aim_range_max
+var aim_height: float = 0.0       # CombatTuning.aim_height_min..aim_height_max
 # Reticle world position — recomputed each frame; cached so AimOverlay reads it
 # once per frame rather than re-deriving.
 var aim_reticle_world: Vector3 = Vector3.ZERO

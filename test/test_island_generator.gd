@@ -93,6 +93,29 @@ func test_no_vertex_below_sea_level() -> void:
 				"Type %d vertex %d should be >= 0 (got %f)" % [type_idx, i, m.vertices[i].y])
 
 
+func test_peak_height_for_matches_generated_peak() -> void:
+	# peak_height_for() is the single source of truth PortMesh uses to anchor
+	# the lighthouse. If the two ever drift the lighthouse will float above
+	# (or sink into) the island. Pin all four island types.
+	for type_idx in range(4):
+		var m := IslandGenerator.generate(type_idx, 25.0, 15.0)
+		var helper := IslandGenerator.peak_height_for(type_idx, 15.0)
+		assert_almost_eq(helper, m.vertices[0].y, 1e-4,
+			"peak_height_for(type %d) must match generated peak vertex y" % type_idx)
+
+
+func test_peak_height_for_saddle_and_atoll() -> void:
+	# Regression for the floating-lighthouse bug — saddle (type 1) lowers the
+	# centre to 0.4×; atoll (type 3) caps at 0.15×. Lighthouse anchor must
+	# match these or the tower hovers above the mound.
+	assert_almost_eq(IslandGenerator.peak_height_for(1, 15.0), 6.0, 1e-4,
+		"Saddle peak = 0.4 × height_max")
+	assert_almost_eq(IslandGenerator.peak_height_for(3, 15.0), 2.25, 1e-4,
+		"Atoll peak = 0.15 × height_max")
+	assert_almost_eq(IslandGenerator.peak_height_for(0, 15.0), 15.0, 1e-4,
+		"Dome peak = height_max")
+
+
 func test_outer_ring_radius_scales_with_size() -> void:
 	# Outer ring (r = rings_count-1) vertices should sit roughly at size
 	# distance from centre (dome type — no x/z mods). Allow JS-rng noise of
