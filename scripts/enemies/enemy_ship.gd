@@ -143,3 +143,7 @@ func apply_transform() -> void:
 	b = b.rotated(b.x, pitch)
 	b = b.rotated(b.z, roll)
 	transform.basis = b
+
+
+func get_line_model() -> LineModel:
+	return _line_model

@@ -103,3 +103,12 @@ func test_death_triggers_autosave() -> void:
 	assert_true(Persistence.load())
 	assert_eq(GameState.ship.gold, 100, "saved gold should be the halved value")
 	assert_eq(GameState.ship.cargo.size(), 0, "saved cargo should be empty")
+
+
+func test_player_death_preserves_ship_class() -> void:
+	GameState.ship.ship_class_id = "schooner"
+	GameState.ship.gold = 200
+	EventBus.player_death.emit()
+	await get_tree().process_frame
+	assert_eq(GameState.ship.ship_class_id, "schooner", "ship class survives death")
+	assert_eq(GameState.ship.gold, 100, "gold halved as expected (regression net)")

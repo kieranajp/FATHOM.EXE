@@ -455,6 +455,10 @@ func _build_placeholder_mesh() -> void:
 	_tick_sail_deformation()
 
 
+func get_ship_model() -> LineModel:
+	return _ship_model
+
+
 # Rebuilds the ship mesh and reloads the ShipClass resource when the class is changed at runtime (T38 dev menu).
 func update_ship_class() -> void:
 	var old_visual := get_node_or_null("ShipVisual")

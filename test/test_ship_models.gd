@@ -90,3 +90,36 @@ func test_deformations_schema_is_well_formed() -> void:
 					idx >= 0 and idx < model.vertices.size(),
 					"%s deformation index %d out of range" % [ship_id, idx],
 				)
+
+
+func test_player_ship_loads_class_model() -> void:
+	for class_id in ALL_SHIPS:
+		GameState.ship.ship_class_id = class_id
+		var player: PlayerShip = load("res://scripts/player/player_ship.gd").new()
+		player.ocean_path = NodePath("")
+		add_child_autofree(player)
+		await get_tree().process_frame
+		
+		var expected := load("res://data/models/%s.tres" % class_id) as LineModel
+		assert_not_null(player.get_ship_model(), "player ship model for %s should be loaded" % class_id)
+		assert_eq(
+			player.get_ship_model().vertices.size(),
+			expected.vertices.size(),
+			"vertex count for player class %s" % class_id
+		)
+
+
+func test_enemy_ship_loads_class_model() -> void:
+	for class_id in ALL_SHIPS:
+		var enemy := EnemyShip.new()
+		enemy.ship_class_id = class_id
+		add_child_autofree(enemy)
+		await get_tree().process_frame
+		
+		var expected := load("res://data/models/%s.tres" % class_id) as LineModel
+		assert_not_null(enemy.get_line_model(), "enemy ship model for %s should be loaded" % class_id)
+		assert_eq(
+			enemy.get_line_model().vertices.size(),
+			expected.vertices.size(),
+			"vertex count for enemy class %s" % class_id
+		)
