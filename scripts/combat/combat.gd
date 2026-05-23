@@ -152,7 +152,13 @@ static func fire_broadside(
 	var target_y: float = 0.0
 	var target_z: float = 0.0
 	if use_aim:
-		var aim_yaw: float = fire_yaw + float(aim.get("yaw_offset", 0.0))
+		# Per-flank sign flip on yaw_offset so positive offset means "toward the
+		# bow" on both sides. PlayerShip._tick_aim_state applies the same flip
+		# when computing the world-space reticle — keep the two in lockstep.
+		var signed_offset: float = PlayerShip._signed_aim_offset(
+			float(aim.get("yaw_offset", 0.0)), side
+		)
+		var aim_yaw: float = fire_yaw + signed_offset
 		var aim_range: float = float(aim.get("range", tuning.aim_range_default))
 		target_x = float(state.get("x", 0.0)) + sin(aim_yaw) * aim_range
 		target_y = float(aim.get("height", 0.0))

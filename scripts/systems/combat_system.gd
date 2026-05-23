@@ -21,6 +21,11 @@ var _player: PlayerShip
 var _ocean: Ocean
 var _enemies_root: Node3D
 var _ports_root: Node
+# Monotonic id stamped onto every debris dict at spawn. Used by CombatVisuals
+# as a stable hash key — the debris dict itself can't be used because Godot
+# dictionaries hash by content, and combat mutates x/y/z/yaw/etc every tick
+# (invalidating the hash). Wraps at 2^31 which won't happen in a session.
+var _next_debris_id: int = 1
 
 
 func _ready() -> void:
@@ -181,6 +186,16 @@ func _check_hits_against_player(p: Dictionary) -> bool:
 	return true
 
 
+# Hands out the next debris id and bumps the counter. Centralised so both
+# spark debris (_spawn_debris) and crate debris (_spawn_crates) share the
+# id space, which keeps CombatVisuals._sync_crates safe even if a future
+# change starts mixing them.
+func _next_id() -> int:
+	var n: int = _next_debris_id
+	_next_debris_id += 1
+	return n
+
+
 # --- Splash + debris (one-line wrappers; FX is its own ticket). ---
 func _spawn_splash(x: float, z: float) -> void:
 	var max_r: float = tuning.splash_max_radius_base + randf() * tuning.splash_max_radius_jitter
@@ -192,6 +207,7 @@ func _spawn_splash(x: float, z: float) -> void:
 func _spawn_debris(x: float, y: float, z: float) -> void:
 	for _i in tuning.debris_count_on_hit:
 		World.debris.append({
+			"id": _next_id(),
 			"x": x, "y": y, "z": z,
 			"vx": (randf() - 0.5) * 4.0,
 			"vy": 1.0 + randf() * 3.0,
@@ -384,6 +400,7 @@ func _spawn_crates(pos: Vector3) -> void:
 		var dist: float = randf() * visuals_tuning.crate_spawn_radius
 		var outward_speed: float = visuals_tuning.crate_initial_outward_speed
 		World.debris.append({
+			"id": _next_id(),
 			"x": pos.x + sin(angle) * dist,
 			"y": pos.y,
 			"z": pos.z + cos(angle) * dist,

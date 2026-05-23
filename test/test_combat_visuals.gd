@@ -201,14 +201,19 @@ func test_sparks_produce_geometry() -> void:
 
 
 func test_crates_spawn_mesh_instances() -> void:
+	# `id` mirrors what CombatSystem._next_id() stamps at spawn — it's the stable
+	# key CombatVisuals._sync_crates uses. See the comment in _sync_crates: a
+	# mutable dict can't be used as a hash key because Godot 4 hashes by content.
 	World.debris = [
 		{
+			"id": 1,
 			"x": 5.0, "y": 0.0, "z": 5.0,
 			"vx": 0.5, "vy": 0.0, "vz": 0.5,
 			"life": 5.0, "is_spark": false,
 			"yaw": 0.0, "pitch": 0.0, "roll": 0.0,
 		},
 		{
+			"id": 2,
 			"x": -5.0, "y": 0.0, "z": -5.0,
 			"vx": -0.5, "vy": 0.0, "vz": -0.5,
 			"life": 5.0, "is_spark": false,
@@ -228,6 +233,7 @@ func test_crates_spawn_mesh_instances() -> void:
 func test_crate_visuals_freed_when_debris_clears() -> void:
 	World.debris = [
 		{
+			"id": 42,
 			"x": 0.0, "y": 0.0, "z": 0.0,
 			"vx": 0.0, "vy": 0.0, "vz": 0.0,
 			"life": 5.0, "is_spark": false,
@@ -249,3 +255,37 @@ func test_crate_visuals_freed_when_debris_clears() -> void:
 			if not child.is_queued_for_deletion():
 				crate_count += 1
 	assert_eq(crate_count, 0, "Crate visuals freed when their debris entry disappears")
+
+
+# Regression: sinking a ship spawns crates that get mutated every tick (x, y,
+# z, yaw, pitch, roll, life). When the visual pool was keyed by the debris
+# dict itself, the second tick crashed with "Invalid access to property or
+# key" because Godot 4 hashes Dictionaries by content. Pin that mutating
+# fields across ticks does NOT desync the visual pool.
+func test_crate_visuals_survive_mutation_across_ticks() -> void:
+	var crate := {
+		"id": 7,
+		"x": 0.0, "y": 0.0, "z": 0.0,
+		"vx": 0.0, "vy": 0.0, "vz": 0.0,
+		"life": 5.0, "is_spark": false,
+		"yaw": 0.0, "pitch": 0.0, "roll": 0.0,
+	}
+	World.debris = [crate]
+	_visuals._process(0.016)
+	# Simulate _tick_debris mutating every field that combat_system touches.
+	crate.x = 12.34
+	crate.y = 0.5
+	crate.z = -7.0
+	crate.yaw = 1.7
+	crate.pitch = 0.3
+	crate.roll = -0.4
+	crate.life = 4.9
+	# This is the call that used to crash.
+	_visuals._process(0.016)
+	var crate_count := 0
+	for child in _visuals.get_children():
+		if (child is MeshInstance3D and child.name != "CombatLines"
+				and child.name != "CombatHeads" and is_instance_valid(child)):
+			if not child.is_queued_for_deletion():
+				crate_count += 1
+	assert_eq(crate_count, 1, "Single crate survives mutation — no duplicate spawn, no crash")

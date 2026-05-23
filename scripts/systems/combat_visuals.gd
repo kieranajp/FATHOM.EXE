@@ -378,14 +378,20 @@ func _emit_sparks() -> void:
 # so a one-pass diff updates the visible set.
 func _sync_crates() -> void:
 	# 1. Spawn visuals for any crate dict we haven't seen yet.
-	var live_crates: Array = []
+	# IMPORTANT: Godot 4 hashes dictionaries by content, and combat mutates
+	# x/y/z/yaw on every tick — so using `d` directly as a key invalidates the
+	# hash next frame and `_crate_visuals[d]` blows up with "Invalid access to
+	# property or key {…}". We key by the stable monotonic `id` stamped at
+	# spawn time by CombatSystem._next_id() instead.
+	var live_ids: Dictionary = {}
 	for d in World.debris:
 		if bool(d.get("is_spark", false)):
 			continue
-		live_crates.append(d)
-		if not _crate_visuals.has(d):
-			_crate_visuals[d] = _build_crate_visual()
-		var inst: MeshInstance3D = _crate_visuals[d]
+		var id: int = int(d.get("id", 0))
+		live_ids[id] = true
+		if not _crate_visuals.has(id):
+			_crate_visuals[id] = _build_crate_visual()
+		var inst: MeshInstance3D = _crate_visuals[id]
 		# Crate y rides the wave surface (or whatever the combat system wrote
 		# into d.y for this frame).
 		inst.position = Vector3(float(d.x), float(d.y), float(d.z))
@@ -401,7 +407,7 @@ func _sync_crates() -> void:
 	# 2. Free visuals for crates that disappeared from World.debris.
 	var stale: Array = []
 	for k in _crate_visuals.keys():
-		if not live_crates.has(k):
+		if not live_ids.has(k):
 			stale.append(k)
 	for k in stale:
 		var inst: MeshInstance3D = _crate_visuals[k]
