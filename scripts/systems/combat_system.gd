@@ -43,6 +43,7 @@ func _ready() -> void:
 	World.debris.clear()
 	World.active_target = null
 	World.enforcer_alert_active = false
+	World.enforcer = null
 
 	# Wire ocean ref into already-spawned enemies (if any pre-exist for tests).
 	for e in World.enemies:
@@ -137,6 +138,7 @@ func _check_hits_against_enemies(p: Dictionary) -> bool:
 				enemy.speed_debuff_timer = tuning.chain_debuff_seconds
 			if sunk:
 				_begin_sink(enemy, attacker)
+				EventBus.hud_message.emit("ENEMY DOWN", "info")
 			return true
 	return false
 
@@ -162,6 +164,10 @@ func _check_hits_against_player(p: Dictionary) -> bool:
 	_spawn_debris(pp.x, pp.y + 1.5, pp.z)
 	if ammo_type == "chain":
 		_player.speed_debuff_timer = tuning.chain_debuff_seconds
+		EventBus.hud_message.emit("RIGGING DAMAGED — SAILS SHREDDED", "warning")
+	# BRACE FOR IMPACT alert — only on non-fatal hits; T37 owns the sunk message.
+	if not sunk:
+		EventBus.hud_message.emit("BRACE FOR IMPACT (-%d HP)" % int(roundf(dmg)), "alert")
 	if sunk:
 		EventBus.ship_sunk.emit(_player, attacker)
 		EventBus.player_death.emit()
@@ -311,6 +317,7 @@ func _tick_enemies(delta: float) -> void:
 				break
 		if not any_alive:
 			World.enforcer_alert_active = false
+			World.enforcer = null
 			EventBus.enforcer_alert_ended.emit()
 
 
@@ -373,6 +380,8 @@ func spawn_enemy(
 		var dz: float = _player.global_position.z - pos.z
 		enemy.yaw = atan2(dx, dz)
 	World.enemies.append(enemy)
+	if is_enforcer:
+		World.enforcer = enemy
 	return enemy
 
 
@@ -425,7 +434,9 @@ func _build_aim_dict() -> Dictionary:
 
 # Emits no_fire_zone_violated if the player is within `no_fire_zone_radius` of
 # any port. On first violation in the session (no active enforcer alert),
-# spawns the authority galleon.
+# spawns the authority galleon; if an enforcer is already active and the
+# violator differs from its current target, retargets the enforcer instead of
+# spawning a second one (mirrors JS alertPortAuthority).
 func _check_no_fire_zone() -> void:
 	var nearest_port: PortDef = null
 	var nearest_dist: float = INF
@@ -443,23 +454,43 @@ func _check_no_fire_zone() -> void:
 			nearest_node = port
 	if nearest_port == null or nearest_dist >= tuning.no_fire_zone_radius:
 		return
-	EventBus.no_fire_zone_violated.emit(_player, nearest_port)
-	if World.enforcer_alert_active:
-		return
-	# Spawn a galleon enforcer between player and the violated port.
-	var dx: float = nearest_node.global_position.x - _player.global_position.x
-	var dz: float = nearest_node.global_position.z - _player.global_position.z
+	_handle_no_fire_zone_violation(_player, nearest_port, nearest_node)
+
+
+# Shared retarget/spawn logic. Public-ish so tests can drive it directly with a
+# synthetic violator without needing a port group set up; the per-tick check
+# above wraps it with player+port lookup.
+func _handle_no_fire_zone_violation(violator: Node, near_port: PortDef, near_port_node: Node3D) -> void:
+	EventBus.no_fire_zone_violated.emit(violator, near_port)
+
+	# An enforcer is already chasing someone — either retarget or no-op.
+	if World.enforcer_alert_active and World.enforcer != null and is_instance_valid(World.enforcer):
+		var enforcer := World.enforcer as EnemyShip
+		if enforcer != null and not enforcer.is_sinking and enforcer.health > 0.0:
+			if enforcer.target != violator:
+				enforcer.target = violator
+				EventBus.hud_message.emit("ENFORCER REDIRECTED", "alert")
+			# Already targeting this violator: no spawn, no hud spam.
+			return
+		# Stale ref — fall through to spawn a fresh one.
+
+	# Fresh spawn path: place a galleon between violator and the violated port.
+	var origin: Vector3 = (violator as Node3D).global_position if violator is Node3D else _player.global_position
+	var port_pos: Vector3 = near_port_node.global_position if near_port_node != null else origin
+	var dx: float = port_pos.x - origin.x
+	var dz: float = port_pos.z - origin.z
 	var len: float = sqrt(dx * dx + dz * dz)
 	if len < 0.0001:
 		len = 1.0
 	var spawn_pos := Vector3(
-		_player.global_position.x + (dx / len) * 100.0,
+		origin.x + (dx / len) * 100.0,
 		0.0,
-		_player.global_position.z + (dz / len) * 100.0,
+		origin.z + (dz / len) * 100.0,
 	)
-	spawn_enemy(spawn_pos, "galleon", "authority", _player, true)
+	spawn_enemy(spawn_pos, "galleon", "authority", violator, true)
 	World.enforcer_alert_active = true
 	EventBus.enforcer_alert_started.emit()
+	EventBus.hud_message.emit("PORT AUTHORITY ALERTED", "alert")
 
 
 func _on_archipelago_changed(_arch: ArchipelagoDef) -> void:
@@ -475,3 +506,4 @@ func _on_archipelago_changed(_arch: ArchipelagoDef) -> void:
 	World.debris.clear()
 	World.active_target = null
 	World.enforcer_alert_active = false
+	World.enforcer = null
