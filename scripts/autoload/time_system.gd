@@ -19,6 +19,7 @@ var is_paused: bool:
 		return _is_docked or _is_map_open or _is_inventory_open or _is_travelling
 
 var tuning: TimeTuning
+var travel_tuning: TravelTuning
 
 var _is_docked: bool = false
 var _is_map_open: bool = false
@@ -31,7 +32,8 @@ var _in_world_minutes: int = 0
 
 func _ready() -> void:
 	tuning = load("res://data/tuning/time.tres") as TimeTuning
-	
+	travel_tuning = load("res://data/tuning/travel.tres") as TravelTuning
+
 	# Initialise docked state based on whether player starts in a port
 	_is_docked = GameState.current_port_id != ""
 	
@@ -112,4 +114,5 @@ func _on_travel_started(_target: ArchipelagoDef) -> void:
 
 func _on_travel_completed(_target: ArchipelagoDef) -> void:
 	_is_travelling = false
-	advance_hours(6)
+	var hours: int = travel_tuning.hours_per_trip if travel_tuning != null else 6
+	advance_hours(hours)

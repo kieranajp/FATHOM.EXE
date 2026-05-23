@@ -1,9 +1,12 @@
 # Fast Travel transit animation and arrival handler (T08)
+#
+# Target plumbing: main.gd instantiates this scene, sets target_archipelago
+# directly (regular var), then adds it under SceneRoot. There is no fallback —
+# caller is responsible for setting target_archipelago before _ready runs.
 class_name Travel extends Control
 
-static var active_target: ArchipelagoDef = null
-
 var target_archipelago: ArchipelagoDef
+var tuning: TravelTuning
 
 var _time_elapsed: float = 0.0
 var _travel_duration: float = 3.0
@@ -14,19 +17,17 @@ const STAR_COUNT := 100
 
 
 func _ready() -> void:
-	target_archipelago = active_target
-	if target_archipelago == null:
-		# Fallback if somehow null
-		target_archipelago = load("res://data/archipelagos/pirates_cradle.tres") as ArchipelagoDef
-		
-	# Roll 30% chance for storm delay
-	_is_storm = randf() < 0.3
+	tuning = load("res://data/tuning/travel.tres") as TravelTuning
+	assert(target_archipelago != null, "Travel scene mounted without target_archipelago — main.gd must set this before add_child")
+
+	# Roll storm chance from tuning
+	_is_storm = randf() < tuning.storm_chance
 	if _is_storm:
-		_travel_duration = 5.0
+		_travel_duration = tuning.calm_duration_seconds + tuning.storm_extension_seconds
 		# Emit warnings slightly deferred so UI registers it
 		call_deferred("_emit_storm_message")
 	else:
-		_travel_duration = 3.0
+		_travel_duration = tuning.calm_duration_seconds
 		call_deferred("_emit_calm_message")
 
 	# Initialize warp starfield particles
@@ -76,7 +77,13 @@ func _complete_travel() -> void:
 	if not target_archipelago.id in GameState.visited_archipelagos:
 		GameState.visited_archipelagos.append(target_archipelago.id)
 	GameState.travel_count += 1
-	
+
+	# archipelago_changed is owned by Travel — Travel is the source of truth for
+	# arrival, since it's the only place that mutates current_archipelago_id.
+	# main.gd handles scene mounting; OpenSea's _ready re-spawns ports from
+	# GameState so the happy-path doesn't even need this signal, but HUD and
+	# any future listener do.
+	EventBus.archipelago_changed.emit(target_archipelago)
 	# Transition back to sea gameplay
 	EventBus.travel_completed.emit(target_archipelago)
 

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="TravelTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/travel_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+storm_chance = 0.3
+calm_duration_seconds = 3.0
+storm_extension_seconds = 2.0
+hours_per_trip = 6

@@ -50,20 +50,26 @@ func _on_map_toggled_signal(open: bool) -> void:
 			_map_instance = null
 
 
-func _on_travel_started(_target: ArchipelagoDef) -> void:
+func _on_travel_started(target: ArchipelagoDef) -> void:
 	_is_travelling = true
 	# Ensure map is closed when travel starts
 	if _is_map_open:
 		EventBus.map_toggled.emit(false)
-	_mount(TRAVEL_SCENE)
+	# Mount the Travel scene manually so we can hand it the clicked target.
+	# Same shape as _mount but instantiates locally so we can set target_archipelago
+	# before add_child / _ready runs.
+	for child in scene_root.get_children():
+		child.queue_free()
+	var travel_instance: Travel = TRAVEL_SCENE.instantiate() as Travel
+	travel_instance.target_archipelago = target
+	scene_root.add_child.call_deferred(travel_instance)
 
 
-func _on_travel_completed(target: ArchipelagoDef) -> void:
+func _on_travel_completed(_target: ArchipelagoDef) -> void:
 	_is_travelling = false
 	_mount(OPEN_SEA)
-	# Emit archipelago_changed so OpenSea knows to load the new archipelago's ports.
-	# Defer it so the new OpenSea scene is fully mounted and ready to listen.
-	EventBus.archipelago_changed.emit.call_deferred(target)
+	# archipelago_changed is emitted by Travel._complete_travel (the source of
+	# truth for arrival). Do not re-emit here.
 
 
 func _on_port_docked(_port: PortDef) -> void:
