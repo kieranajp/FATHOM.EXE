@@ -24,7 +24,7 @@ var tuning: WindTuning
 
 
 func _ready() -> void:
-	tuning = load("res://data/tuning/wind.tres") as WindTuning
+	tuning = Tunings.wind
 	angle = tuning.initial_angle
 	target_angle = tuning.initial_angle
 	speed = tuning.speed_knots

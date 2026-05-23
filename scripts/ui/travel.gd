@@ -177,7 +177,7 @@ func _draw() -> void:
 
 
 	# Render strategic HUD overlay
-	var text_color := Color("#33ff33")
+	var text_color := Factions.color_for("player")
 	var dest_name := target_archipelago.display_name.to_upper()
 	var label_text := "TRANSITING TO " + dest_name + "..."
 	if _is_intercept:

@@ -187,6 +187,8 @@ static func fire_broadside(
 		var start_y: float = ship_y + 1.0
 		var start_z: float = ship_z + cos(fire_yaw) * hit_radius
 
+		var faction_id: String = String(state.get("faction_id", "player" if is_player_owned else "pirate"))
+
 		if is_player_owned and ammo_type == "grape":
 			for _j in tuning.grape_pellets:
 				var pellet := _spawn_grape_pellet(
@@ -197,6 +199,7 @@ static func fire_broadside(
 				)
 				pellet["attacker"] = attacker
 				pellet["is_player_owned"] = true
+				pellet["faction_id"] = faction_id
 				projectiles_out.append(pellet)
 				EventBus.projectile_spawned.emit(pellet)
 		else:
@@ -209,6 +212,7 @@ static func fire_broadside(
 			)
 			p["attacker"] = attacker
 			p["is_player_owned"] = is_player_owned
+			p["faction_id"] = faction_id
 			projectiles_out.append(p)
 			EventBus.projectile_spawned.emit(p)
 

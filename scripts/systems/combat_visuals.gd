@@ -13,11 +13,6 @@
 # JS reference: game.js render block "F./G./H." (projectiles/splashes/debris).
 class_name CombatVisuals extends Node3D
 
-# JS-canonical neon-yellow when the projectile's owner faction is unclear.
-# Mirrors game.js fill style for the ball/grape primitive renders.
-const FALLBACK_PLAYER_COLOR := Color("#33ffff")
-const FALLBACK_PIRATE_COLOR := Color("#ff5555")
-const FALLBACK_AUTHORITY_COLOR := Color("#3388ff")
 const CHAIN_COLOR := Color("#ffff33")
 const GRAPE_COLOR := Color("#ffff66")
 
@@ -26,6 +21,7 @@ const GRAPE_COLOR := Color("#ffff66")
 const CULL_MARGIN: float = 4096.0
 
 @export var tuning: CombatVisualsTuning
+@export var combat_tuning: CombatTuning
 @export var ocean_path: NodePath
 
 var _ocean: Ocean
@@ -53,6 +49,8 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	if tuning == null:
 		tuning = load("res://data/tuning/combat_visuals.tres") as CombatVisualsTuning
+	if combat_tuning == null:
+		combat_tuning = load("res://data/tuning/combat.tres") as CombatTuning
 	if ocean_path != NodePath(""):
 		var on := get_node_or_null(ocean_path)
 		if on is Ocean:
@@ -306,15 +304,8 @@ func _emit_quad_at(centre: Vector3, half_extent: float, col: Color, cam_right: V
 # Projectile colour by attacker faction. Falls back to is_player_owned when no
 # attacker is set (e.g. legacy fixtures) or the attacker has no faction info.
 func _color_for_projectile(p: Dictionary) -> Color:
-	var attacker = p.get("attacker", null)
-	if attacker is EnemyShip:
-		return Factions.color_for((attacker as EnemyShip).faction_id)
-	if attacker is PlayerShip:
-		return FALLBACK_PLAYER_COLOR
-	# No attacker → fall back to ownership flag.
-	if bool(p.get("is_player_owned", false)):
-		return FALLBACK_PLAYER_COLOR
-	return FALLBACK_PIRATE_COLOR
+	var faction_id: String = p.get("faction_id", "player" if bool(p.get("is_player_owned", false)) else "pirate")
+	return Factions.color_for(faction_id)
 
 
 # --- Splashes ---
@@ -330,7 +321,7 @@ func _emit_splashes() -> void:
 		var sz: float = float(s.z)
 		var r: float = float(s.r)
 		var life: float = float(s.life)
-		var initial_life: float = 0.55  # splash_life from CombatTuning; the ratio is what we care about
+		var initial_life: float = combat_tuning.splash_life
 		# Use whatever value lives on the dict; combat_system creates with the
 		# tuning default 0.55s. If a future ticket changes it, we'd ideally read
 		# the original — for now the canonical splash_life is good enough.

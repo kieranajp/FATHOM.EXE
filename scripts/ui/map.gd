@@ -200,7 +200,7 @@ func _draw() -> void:
 		# 2. Draw hover highlight ring or pulsing current highlight
 		if is_current:
 			var pulse: float = 1.0 + sin(_pulse_timer * _tuning.pulse_speed) * 0.05
-			var pulse_color := Color("#33ff33") # Glowing green for current ship home
+			var pulse_color := Factions.color_for("player") # Glowing green for current ship home
 			draw_arc(center, radius * pulse, 0, TAU, 64, pulse_color, 2.0, true)
 		elif is_hovered:
 			# Bold hover ring
@@ -256,7 +256,7 @@ func _draw() -> void:
 					ship_pos + Vector2(-8, 8),
 					ship_pos + Vector2(8, 8)
 				])
-				draw_colored_polygon(points, Color("#33ff33"))
+				draw_colored_polygon(points, Factions.color_for("player"))
 
 
 func _draw_background_decorations(font: Font) -> void:

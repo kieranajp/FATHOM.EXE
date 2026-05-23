@@ -41,9 +41,7 @@ var time_passed: float = 0.0
 
 
 func _ready() -> void:
-	# Load tuning resource or fallback to defaults
-	if ResourceLoader.exists("res://data/tuning/audio.tres"):
-		tuning = load("res://data/tuning/audio.tres") as AudioTuning
+	tuning = Tunings.audio
 	if not tuning:
 		tuning = AudioTuning.new()
 

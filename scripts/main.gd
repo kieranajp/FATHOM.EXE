@@ -139,7 +139,7 @@ func _on_player_death() -> void:
 
 	# Health: refill to class max. Look up the ShipClass from disk rather than
 	# reaching into a PlayerShip node — we want this to work in tests too.
-	var ship_class: ShipClass = _load_ship_class(ship.ship_class_id)
+	var ship_class := ShipClass.load_or_default(ship.ship_class_id)
 	var max_hp: float = ship_class.max_health if ship_class != null else 100.0
 	ship.health = max_hp
 
@@ -211,15 +211,6 @@ func _find_nearest_port(archipelago_id: String, pos: Vector3) -> PortDef:
 			best = port_def
 	return best
 
-
-# Mirror of PlayerShip._load_ship_class but as a self-contained helper so the
-# death handler doesn't depend on a live PlayerShip node (under GUT the
-# OpenSea sub-scene isn't mounted, so the ShipClass must come from disk).
-func _load_ship_class(class_id: String) -> ShipClass:
-	var path: String = "res://data/ships/" + class_id + ".tres"
-	if not ResourceLoader.exists(path):
-		return null
-	return load(path) as ShipClass
 
 
 # Swap the active sub-scene. Defers the actual add so we don't free a node
