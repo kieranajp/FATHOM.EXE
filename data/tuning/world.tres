@@ -6,3 +6,6 @@
 script = ExtResource("1")
 grid_radius = 160.0
 grid_spacing = 8.0
+spray_particle_count = 80
+spray_radius = 150.0
+spray_size = 0.8

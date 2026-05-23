@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Shader" path="res://assets/shaders/wireframe.gdshader" id="1"]
 [ext_resource type="Script" path="res://scripts/systems/ocean.gd" id="2"]
@@ -9,6 +9,7 @@
 [ext_resource type="Resource" path="res://data/tuning/camera.tres" id="7"]
 [ext_resource type="Script" path="res://scripts/systems/open_sea.gd" id="8"]
 [ext_resource type="Resource" path="res://data/tuning/dock.tres" id="9"]
+[ext_resource type="Script" path="res://scripts/systems/sea_spray.gd" id="10"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_wire"]
 shader = ExtResource("1")
@@ -60,4 +61,10 @@ wireframe_material = SubResource("ShaderMaterial_wire")
 transform = Transform3D(1, 0, 0, 0, 0.894427, 0.447214, 0, -0.447214, 0.894427, 0, 5, 10)
 script = ExtResource("6")
 tuning = ExtResource("7")
+player_path = NodePath("../PlayerShip")
+
+[node name="SeaSpray" type="Node3D" parent="."]
+script = ExtResource("10")
+tuning = ExtResource("3")
+ocean_path = NodePath("../Ocean")
 player_path = NodePath("../PlayerShip")
