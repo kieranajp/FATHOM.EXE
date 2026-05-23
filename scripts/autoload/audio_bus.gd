@@ -1,5 +1,10 @@
 # AudioBus — all sound playback. Wraps a pool of AudioStreamPlayer.
-# Procedurally synthesizes classic retro 8-bit sound effects at startup.
+#
+# Procedurally synthesizes classic retro 8-bit sound effects at boot as
+# `AudioStreamWAV` resources, rather than streaming via `AudioStreamGenerator`
+# per-frame. Boot-time synthesis trades a few hundred ms of startup work for
+# zero per-shot synth cost and no buffer-underrun clicks on rapid fire — the
+# per-shot path is just a player checkout from the pool.
 extends Node
 
 # Load the tuning file
