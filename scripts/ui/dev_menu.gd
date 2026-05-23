@@ -6,6 +6,12 @@ const PORT_DIR := "res://data/ports/"
 const COMMODITY_DIR := "res://data/commodities/"
 const SHIP_DIR := "res://data/ships/"
 
+# Dev-menu hostile spawns drop the enemy 50m ahead of the player — close
+# enough for immediate combat testing (vs combat.tres spawn_min/max_distance
+# = 80..200m for ambient pirate spawns). Kept as a const here rather than in
+# combat tuning so this remains a "debug knob" not a balance knob.
+const SPAWN_DISTANCE_M := 50.0
+
 # All loaded resources
 var _ports: Array[PortDef] = []
 var _commodities: Array[Commodity] = []
@@ -407,7 +413,7 @@ func _on_spawn_pirate() -> void:
 	# Places a pirate ~50m ahead of the player
 	# In Godot, player's forward vector is -global_transform.basis.z
 	var forward := -player.global_transform.basis.z
-	var spawn_pos := player.global_position + forward * 50.0
+	var spawn_pos := player.global_position + forward * SPAWN_DISTANCE_M
 
 	var spawner := scene_root.find_child("EnemySpawner", true, false)
 	if spawner != null and spawner.has_method("spawn_at"):
