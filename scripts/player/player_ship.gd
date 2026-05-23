@@ -180,14 +180,12 @@ static func _compute_aim_mode(right_mouse_held: bool, aim_action_pressed: bool) 
 	return right_mouse_held or aim_action_pressed
 
 
-# Aim-mode yaw drag — sign is negated because the chase camera now sits on
-# the OPPOSITE side of the firing flank (see ChaseCamera.compute_aim_yaw_offset).
-# That mirroring means a mouse-drag-right in screen space is a left-drag in
-# the firing-flank's local frame. JS reference (game.js:497) uses `+ dx`, but
-# JS placed the camera on the SAME side as firing, so we invert here to keep
-# the on-screen reticle moving with the cursor.
+# Aim-mode yaw drag — positive mouse_dx (cursor right) → positive yaw offset.
+# Matches JS game.js:497 (`mouse.aimYaw += dx * rate`). The camera no longer
+# repositions in aim mode, so the previous negation (which compensated for a
+# never-shipped camera flip) is dropped.
 static func _compute_aim_yaw_delta(mouse_dx: float, rate: float) -> float:
-	return -mouse_dx * rate
+	return mouse_dx * rate
 
 
 # Aim-side selection from camera yaw offset. The JS-derived rule is "fire AWAY
