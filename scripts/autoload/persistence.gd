@@ -16,7 +16,7 @@
 #                     current_archipelago_id, current_port_id,
 #                     visited_archipelagos, travel_count,
 #                     active_rumor, last_drink_purchased,
-#                     port_ship_stock, factions, crew, officers,
+#                     port_ship_stock, port_ammo_stock, factions, crew, officers,
 #                     player_state
 #   player_state:     ship_class_id, ship_name, gold, health,
 #                     cargo, ammo, active_ammo, sail_level
@@ -117,6 +117,7 @@ func _build_payload() -> Dictionary:
 		"active_rumor": GameState.active_rumor,
 		"last_drink_purchased": GameState.last_drink_purchased,
 		"port_ship_stock": GameState.port_ship_stock.duplicate(true),
+		"port_ammo_stock": GameState.port_ammo_stock.duplicate(true),
 		"factions": GameState.factions.duplicate(true),
 		"crew": crew_dict,
 		"officers": [],  # post-parity; Officer resources not yet serialised
@@ -143,6 +144,7 @@ func _apply_payload(data: Dictionary) -> void:
 	GameState.visited_archipelagos = visited
 
 	GameState.port_ship_stock = (data.get("port_ship_stock", {}) as Dictionary).duplicate(true)
+	GameState.port_ammo_stock = (data.get("port_ammo_stock", {}) as Dictionary).duplicate(true)
 	GameState.factions = (data.get("factions", {}) as Dictionary).duplicate(true)
 
 	# PlayerState — create fresh, overlay persisted fields onto defaults
