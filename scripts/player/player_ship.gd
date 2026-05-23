@@ -179,18 +179,19 @@ func _tick_motion_and_collision(delta: float) -> void:
 
 	if collision_immunity_timer <= 0.0:
 		var ship_radius: float = ship_class.hit_radius if ship_class != null else 4.0
-		# Iterate ports defensively — empty until T03 lands. Group membership is
-		# how ports announce themselves; lets us stay decoupled from T03's data.
-		for port in get_tree().get_nodes_in_group("port"):
-			if not (port is Node3D):
+		# Iterate ports via the typed Port class (T03). Group membership is how
+		# ports announce themselves; collision stays decoupled from spawn logic.
+		for node in get_tree().get_nodes_in_group("port"):
+			if not (node is Port):
 				continue
-			var port_node := port as Node3D
-			var port_size: float = port_node.get_meta("size", 25.0)  # T03 will set; default reasonable
-			var dx: float = port_node.global_position.x - next_x
-			var dz: float = port_node.global_position.z - next_z
-			var threshold: float = port_size + ship_radius + tuning.collision_radius_margin
+			var port := node as Port
+			if port.port_def == null:
+				continue
+			var dx: float = port.global_position.x - next_x
+			var dz: float = port.global_position.z - next_z
+			var threshold: float = port.port_def.size + ship_radius + tuning.collision_radius_margin
 			if Vector2(dx, dz).length() < threshold:
-				_handle_collision(port_node)
+				_handle_collision(port)
 				return  # don't update position; keep current x/z for the bounce
 
 	global_position.x = next_x
@@ -236,16 +237,14 @@ func _apply_transform() -> void:
 	transform.basis = b
 
 
-func _handle_collision(port_node: Node3D) -> void:
+func _handle_collision(port: Port) -> void:
 	GameState.ship.health = maxf(0.0, GameState.ship.health - tuning.collision_damage)
 	speed = tuning.collision_bounce_speed
 	collision_immunity_timer = tuning.collision_immunity_seconds
 
-	# Best-effort PortDef extraction — T03 will attach the resource as metadata.
-	# We emit with the node's PortDef if present, null otherwise (signal arg
-	# allows it; downstream listeners must null-check).
-	var port_def: PortDef = port_node.get_meta("port_def", null) as PortDef
-	EventBus.island_collided.emit(port_def, self)
+	# port.port_def is non-null by construction (collision loop filters it),
+	# so the signal always carries a real PortDef.
+	EventBus.island_collided.emit(port.port_def, self)
 
 
 func _load_ship_class(class_id: String) -> ShipClass:
