@@ -9,10 +9,13 @@ const OPEN_SEA := preload("res://scenes/OpenSea.tscn")
 const PORT := preload("res://scenes/Port.tscn")
 const MAP_SCENE := preload("res://scenes/Map.tscn")
 const TRAVEL_SCENE := preload("res://scenes/Travel.tscn")
+const PORT_DIR := "res://data/ports/"
+const ARCHIPELAGO_DIR := "res://data/archipelagos/"
 
 @onready var scene_root: Node = $SceneRoot
 
 var _dock_tuning: DockTuning
+var _respawn_tuning: RespawnTuning
 var _is_map_open: bool = false
 var _is_travelling: bool = false
 var _map_instance: Node = null
@@ -20,6 +23,7 @@ var _map_instance: Node = null
 
 func _ready() -> void:
 	_dock_tuning = load("res://data/tuning/dock.tres") as DockTuning
+	_respawn_tuning = load("res://data/tuning/respawn.tres") as RespawnTuning
 	# Boot path: resume a saved game if one exists, otherwise fresh start.
 	# Persistence.load() applies onto GameState directly; on corruption or
 	# version mismatch it emits hud_message and falls back to a new game.
@@ -33,6 +37,7 @@ func _ready() -> void:
 	EventBus.map_toggled.connect(_on_map_toggled_signal)
 	EventBus.travel_started.connect(_on_travel_started)
 	EventBus.travel_completed.connect(_on_travel_completed)
+	EventBus.player_death.connect(_on_player_death)
 	_mount(OPEN_SEA)
 
 
@@ -98,6 +103,103 @@ func _apply_undock_immunity() -> void:
 	var ship := scene_root.find_child("PlayerShip", true, false) as PlayerShip
 	if ship != null:
 		ship.collision_immunity_timer = immunity
+
+
+# Player death — wipe cargo, halve gold, refill HP, teleport to nearest port
+# in the current archipelago, autosave the penalty. Matches JS handlePlayerDeath
+# (game.js:1399) with the gold penalty added per T37.
+#
+# Player position + speed/sail/yaw reset live on PlayerShip when the OpenSea
+# scene is mounted; in tests / when no PlayerShip exists we still mutate
+# GameState and emit the alert so the rest of the chain is observable.
+func _on_player_death() -> void:
+	var ship: PlayerState = GameState.ship
+	if ship == null:
+		return
+
+	# Health: refill to class max. Look up the ShipClass from disk rather than
+	# reaching into a PlayerShip node — we want this to work in tests too.
+	var ship_class: ShipClass = _load_ship_class(ship.ship_class_id)
+	var max_hp: float = ship_class.max_health if ship_class != null else 100.0
+	ship.health = max_hp
+
+	# Cargo wipe + gold penalty. Both via the tuning fraction (no magic 0.5).
+	ship.cargo = {}
+	var retention: float = (
+		_respawn_tuning.gold_retention_fraction if _respawn_tuning != null else 0.5
+	)
+	ship.gold = int(floor(retention * float(ship.gold)))
+
+	# Find nearest port in the current archipelago by Euclidean distance to the
+	# player. Falls back gracefully if PlayerShip isn't mounted (tests / boot).
+	var player := scene_root.find_child("PlayerShip", true, false) as PlayerShip
+	var player_pos: Vector3 = player.global_position if player != null else Vector3.ZERO
+	var nearest: PortDef = _find_nearest_port(GameState.current_archipelago_id, player_pos)
+
+	var port_name: String = "OPEN SEA"
+	if nearest != null:
+		port_name = nearest.display_name
+		# Teleport: position + zero speed + default sail level. Yaw/rudder reset
+		# too so we don't immediately barrel out of the harbour.
+		if player != null:
+			player.global_position = nearest.position
+			player.speed = 0.0
+			player.rudder = 0.0
+			player.yaw = 0.0
+			player.set_sail_level(_default_sail_level())
+		else:
+			ship.sail_level = _default_sail_level()
+
+	EventBus.hud_message.emit(
+		"YOUR SHIP HAS SUNK — RESPAWNED AT %s" % port_name.to_upper(),
+		"alert",
+	)
+
+	# Persist the penalty so reloading after death doesn't dodge it.
+	Persistence.save()
+
+
+func _default_sail_level() -> float:
+	return _respawn_tuning.default_sail_level if _respawn_tuning != null else 2.0
+
+
+# Returns the PortDef from `archipelago_id` whose world-position is closest to
+# `pos`. Returns null if the archipelago has no resolvable ports (e.g. data
+# missing, or `archipelago_id` empty).
+func _find_nearest_port(archipelago_id: String, pos: Vector3) -> PortDef:
+	if archipelago_id == "":
+		return null
+	var arch_path: String = ARCHIPELAGO_DIR + archipelago_id + ".tres"
+	if not ResourceLoader.exists(arch_path):
+		return null
+	var arch: ArchipelagoDef = load(arch_path) as ArchipelagoDef
+	if arch == null:
+		return null
+
+	var best: PortDef = null
+	var best_d2: float = INF
+	for port_id in arch.port_ids:
+		var port_path: String = PORT_DIR + port_id + ".tres"
+		if not ResourceLoader.exists(port_path):
+			continue
+		var port_def: PortDef = load(port_path) as PortDef
+		if port_def == null:
+			continue
+		var d2: float = pos.distance_squared_to(port_def.position)
+		if d2 < best_d2:
+			best_d2 = d2
+			best = port_def
+	return best
+
+
+# Mirror of PlayerShip._load_ship_class but as a self-contained helper so the
+# death handler doesn't depend on a live PlayerShip node (under GUT the
+# OpenSea sub-scene isn't mounted, so the ShipClass must come from disk).
+func _load_ship_class(class_id: String) -> ShipClass:
+	var path: String = "res://data/ships/" + class_id + ".tres"
+	if not ResourceLoader.exists(path):
+		return null
+	return load(path) as ShipClass
 
 
 # Swap the active sub-scene. Defers the actual add so we don't free a node
