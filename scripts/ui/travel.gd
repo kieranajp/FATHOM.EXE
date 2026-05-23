@@ -11,6 +11,18 @@ var tuning: TravelTuning
 var _time_elapsed: float = 0.0
 var _travel_duration: float = 3.0
 var _is_storm: bool = false
+# T39: when true, the trip aborts in _complete_travel — no GameState writes,
+# scene swaps back to OpenSea in the source archipelago, EnemySpawner drops
+# 1-2 sloops on the player's position via World.pending_intercept_count.
+var _is_intercept: bool = false
+# Per-trip intercept payload (1 or 2 sloops); rolled once on _ready and read
+# in _complete_travel so tests can inspect/override deterministically.
+var _intercept_count: int = 0
+
+# Number of pirate sloops to drop on an intercept. JS reference rolls 1-2;
+# keep the band tight so intercept feels punchy without being a TPK.
+const INTERCEPT_SLOOPS_MIN := 1
+const INTERCEPT_SLOOPS_MAX := 2
 
 var _stars: Array[Dictionary] = []
 const STAR_COUNT := 100
@@ -20,15 +32,26 @@ func _ready() -> void:
 	tuning = load("res://data/tuning/travel.tres") as TravelTuning
 	assert(target_archipelago != null, "Travel scene mounted without target_archipelago — main.gd must set this before add_child")
 
-	# Roll storm chance from tuning
-	_is_storm = randf() < tuning.storm_chance
-	if _is_storm:
-		_travel_duration = tuning.calm_duration_seconds + tuning.storm_extension_seconds
-		# Emit warnings slightly deferred so UI registers it
-		call_deferred("_emit_storm_message")
-	else:
+	# T39: roll intercept and storm independently. Intercept takes precedence
+	# over storm (an ambush is more dramatic than a squall — and storm would
+	# never get screen time anyway since intercept aborts the sequence).
+	var intercept_chance: float = tuning.intercept_chance_for_tier(target_archipelago.risk_tier)
+	_is_intercept = randf() < intercept_chance
+	if _is_intercept:
+		_intercept_count = randi_range(INTERCEPT_SLOOPS_MIN, INTERCEPT_SLOOPS_MAX)
+		_is_storm = false
 		_travel_duration = tuning.calm_duration_seconds
-		call_deferred("_emit_calm_message")
+		# Emit warning slightly deferred so UI registers it
+		call_deferred("_emit_intercept_message")
+	else:
+		_is_storm = randf() < tuning.storm_chance
+		if _is_storm:
+			_travel_duration = tuning.calm_duration_seconds + tuning.storm_extension_seconds
+			# Emit warnings slightly deferred so UI registers it
+			call_deferred("_emit_storm_message")
+		else:
+			_travel_duration = tuning.calm_duration_seconds
+			call_deferred("_emit_calm_message")
 
 	# Initialize warp starfield particles
 	for i in range(STAR_COUNT):
@@ -48,6 +71,10 @@ func _emit_storm_message() -> void:
 
 func _emit_calm_message() -> void:
 	EventBus.hud_message.emit("Open sea is calm.", "info")
+
+
+func _emit_intercept_message() -> void:
+	EventBus.hud_message.emit("INTERCEPTED BY PIRATES!", "alert")
 
 
 func _process(delta: float) -> void:
@@ -72,6 +99,13 @@ func _process(delta: float) -> void:
 
 
 func _complete_travel() -> void:
+	# T39: intercept path — abort the trip, leave GameState untouched so the
+	# player stays in the source archipelago, and queue an intercept spawn for
+	# EnemySpawner to pick up when OpenSea remounts.
+	if _is_intercept:
+		_abort_with_intercept()
+		return
+
 	# Update GameState fields upon safe arrival
 	GameState.current_archipelago_id = target_archipelago.id
 	if not target_archipelago.id in GameState.visited_archipelagos:
@@ -88,13 +122,42 @@ func _complete_travel() -> void:
 	EventBus.travel_completed.emit(target_archipelago)
 
 
+# T39 intercept exit. Does *not* mutate GameState (player stays at the source
+# archipelago) and does *not* emit archipelago_changed (no archipelago change
+# happened). Still emits travel_completed so main.gd remounts OpenSea and
+# TimeSystem advances the clock — sailing did happen up to the intercept,
+# the hours_per_trip cost is paid even on an aborted run.
+func _abort_with_intercept() -> void:
+	# Resolve the source archipelago def (the one the player is in right now).
+	# Falls back to the target if for some reason the source can't be loaded,
+	# so we never hand main.gd a null arg.
+	var source_id: String = GameState.current_archipelago_id
+	var source_def: ArchipelagoDef = target_archipelago
+	if source_id != "":
+		var path: String = "res://data/archipelagos/" + source_id + ".tres"
+		if ResourceLoader.exists(path):
+			var loaded := load(path) as ArchipelagoDef
+			if loaded != null:
+				source_def = loaded
+
+	# Hand off the ambush to EnemySpawner via World — it'll consume + clear the
+	# count on its first initial-spawn tick once OpenSea remounts.
+	World.pending_intercept_count = _intercept_count
+
+	EventBus.travel_completed.emit(source_def)
+
+
 func _draw() -> void:
 	var center := Vector2(960, 540)
 	var font := ThemeDB.fallback_font
 	
-	# Draw starfield warp lines
-	var line_color := Color(0.0, 1.0, 0.8, 0.6) if not _is_storm else Color(1.0, 0.4, 0.2, 0.6) # Teal calm vs Amber storm
-	
+	# Draw starfield warp lines — intercept goes red, storm amber, calm teal.
+	var line_color: Color = Color(0.0, 1.0, 0.8, 0.6)
+	if _is_intercept:
+		line_color = Color(1.0, 0.2, 0.2, 0.7)
+	elif _is_storm:
+		line_color = Color(1.0, 0.4, 0.2, 0.6)
+
 	for star in _stars:
 		var p1: Vector2 = center + star.pos
 		# Draw trailing line proportional to speed/time
@@ -102,16 +165,22 @@ func _draw() -> void:
 		var p2: Vector2 = center + star.pos - star.dir * trail_length
 		draw_line(p1, p2, line_color, 1.5)
 
-		
+
 	# Render strategic HUD overlay
 	var text_color := Color("#33ff33")
 	var dest_name := target_archipelago.display_name.to_upper()
 	var label_text := "TRANSITING TO " + dest_name + "..."
-	if _is_storm:
+	if _is_intercept:
+		label_text = "!! INTERCEPT DETECTED ON ROUTE TO " + dest_name + " !!"
+		text_color = Color("#ff3333")
+	elif _is_storm:
 		label_text = "NAVIGATING STORM SEAS TO " + dest_name + "..."
-		
-	# Pulse warning frame if storm
-	if _is_storm:
+
+	# Pulse warning frame if storm or intercept — intercept gets a brighter red.
+	if _is_intercept:
+		var warn_color := Color(1.0, 0.1, 0.1, 0.3 * (0.5 + sin(_time_elapsed * 14.0) * 0.5))
+		draw_rect(Rect2(50, 50, 1820, 980), warn_color, false, 10.0)
+	elif _is_storm:
 		var warn_color := Color(1.0, 0.3, 0.1, 0.2 * (0.5 + sin(_time_elapsed * 10.0) * 0.5))
 		draw_rect(Rect2(50, 50, 1820, 980), warn_color, false, 8.0)
 

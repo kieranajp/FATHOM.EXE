@@ -41,6 +41,11 @@ var enforcer_alert_active: bool = false
 # to switch an existing enforcer onto a new violator.
 var enforcer: Node = null
 
+# T39: pending pirate-intercept count. Set by ui/travel.gd when a fast-travel
+# trip is intercepted; consumed and cleared by systems/enemy_spawner.gd on the
+# next initial-spawn tick. 0 means "no pending intercept" (normal seed only).
+var pending_intercept_count: int = 0
+
 
 func clear() -> void:
 	enemies.clear()
@@ -53,3 +58,4 @@ func clear() -> void:
 	aim_state = {}
 	enforcer_alert_active = false
 	enforcer = null
+	pending_intercept_count = 0

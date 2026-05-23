@@ -12,3 +12,10 @@ class_name ArchipelagoDef extends Resource
 # a per-archipelago concern, not a system-wide knob.
 @export var map_position: Vector2 = Vector2.ZERO
 @export var map_radius: float = 150.0
+
+# Route-risk tier (T39): 1 = low, 2 = medium, 3 = high. Drives the fast-travel
+# pirate-intercept chance (see TravelTuning.*_intercept_chance) and is rendered
+# as a label on the strategic map so the player can weigh "fast but dangerous"
+# vs "slow but safe". Per-archipelago concern, so it lives on the def, not a
+# tuning .tres.
+@export_range(1, 3) var risk_tier: int = 1
