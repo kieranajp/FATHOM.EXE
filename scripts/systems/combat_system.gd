@@ -12,6 +12,7 @@
 class_name CombatSystem extends Node
 
 @export var tuning: CombatTuning
+@export var visuals_tuning: CombatVisualsTuning
 @export var player_path: NodePath
 @export var ocean_path: NodePath
 @export var enemies_root_path: NodePath  # Node3D parent for spawned enemies; falls back to OpenSea root
@@ -25,6 +26,8 @@ var _ports_root: Node
 func _ready() -> void:
 	if tuning == null:
 		tuning = load("res://data/tuning/combat.tres") as CombatTuning
+	if visuals_tuning == null:
+		visuals_tuning = load("res://data/tuning/combat_visuals.tres") as CombatVisualsTuning
 
 	if player_path != NodePath(""):
 		_player = get_node_or_null(player_path) as PlayerShip

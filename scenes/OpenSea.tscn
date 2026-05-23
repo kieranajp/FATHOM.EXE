@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Shader" path="res://assets/shaders/wireframe.gdshader" id="1"]
 [ext_resource type="Script" path="res://scripts/systems/ocean.gd" id="2"]
@@ -14,6 +14,8 @@
 [ext_resource type="Resource" path="res://data/tuning/combat.tres" id="12"]
 [ext_resource type="Script" path="res://scripts/systems/aim_overlay.gd" id="13"]
 [ext_resource type="Script" path="res://scripts/systems/enemy_spawner.gd" id="14"]
+[ext_resource type="Script" path="res://scripts/systems/combat_visuals.gd" id="15"]
+[ext_resource type="Resource" path="res://data/tuning/combat_visuals.tres" id="16"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_wire"]
 shader = ExtResource("1")
@@ -76,6 +78,7 @@ player_path = NodePath("../PlayerShip")
 [node name="CombatSystem" type="Node" parent="."]
 script = ExtResource("11")
 tuning = ExtResource("12")
+visuals_tuning = ExtResource("16")
 player_path = NodePath("../PlayerShip")
 ocean_path = NodePath("../Ocean")
 enemies_root_path = NodePath("..")
@@ -84,6 +87,11 @@ enemies_root_path = NodePath("..")
 script = ExtResource("13")
 tuning = ExtResource("12")
 player_path = NodePath("../PlayerShip")
+
+[node name="CombatVisuals" type="Node3D" parent="."]
+script = ExtResource("15")
+tuning = ExtResource("16")
+ocean_path = NodePath("../Ocean")
 
 [node name="EnemySpawner" type="Node" parent="."]
 script = ExtResource("14")
