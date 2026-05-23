@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="LineModel" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/line_model.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+; Lighthouse — ported verbatim from FATHOM.EXE main:models3d.js (the
+; `lighthouse` entry). 25 vertices, 44 edges. Octagonal base + mid ring with
+; tower verticals + square gallery flange + lantern room + peaked cap.
+;
+; AXIS CONVERSION: JS left-handed (+Z forward), Godot right-handed (-Z
+; forward). Every JS vertex (x, y, z) Z-flipped to (x, y, -z) at port time.
+; The lighthouse is rotationally symmetric so this is mostly cosmetic, but the
+; vertex ordering still matters for how edges connect — keep the Z-flip.
+;
+; Y is 0..15.5 — the model sits on top of the island plinth with no Y offset.
+
+vertices = PackedVector3Array(
+	-2.5, 0, 2.5,
+	0, 0, 3.5,
+	2.5, 0, 2.5,
+	3.5, 0, 0,
+	2.5, 0, -2.5,
+	0, 0, -3.5,
+	-2.5, 0, -2.5,
+	-3.5, 0, 0,
+	-1.5, 10, 1.5,
+	0, 10, 2.0,
+	1.5, 10, 1.5,
+	2.0, 10, 0,
+	1.5, 10, -1.5,
+	0, 10, -2.0,
+	-1.5, 10, -1.5,
+	-2.0, 10, 0,
+	-2.0, 11, 2.0,
+	2.0, 11, 2.0,
+	2.0, 11, -2.0,
+	-2.0, 11, -2.0,
+	-1.0, 13.5, 1.0,
+	1.0, 13.5, 1.0,
+	1.0, 13.5, -1.0,
+	-1.0, 13.5, -1.0,
+	0, 15.5, 0
+)
+
+; Edges — flat (i0, i1) pairs.
+; Base ring (octagon at y=0), mid ring (octagon at y=10), eight verticals
+; connecting them. Gallery flange: 4 verticals from alternating mid-ring
+; corners to a square ring at y=11. Lantern room: 4 verticals to a square at
+; y=13.5. Roof cap: 4 hip lines converging on a single peak vertex at y=15.5.
+edges = PackedInt32Array(
+	0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 0,
+	8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 8,
+	0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15,
+	8, 16, 10, 17, 12, 18, 14, 19,
+	16, 17, 17, 18, 18, 19, 19, 16,
+	16, 20, 17, 21, 18, 22, 19, 23,
+	20, 21, 21, 22, 22, 23, 23, 20,
+	20, 24, 21, 24, 22, 24, 23, 24
+)
+
+color = Color(1, 1, 1, 1)

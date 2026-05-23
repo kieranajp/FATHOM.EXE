@@ -7,6 +7,12 @@
 // unwrapped surfaces, expect visual artefacts — only the U seam may render as
 // an edge. The legendary-galleon ticket (post-parity) will likely need a
 // barycentric variant; for now, placeholder geometry accepts the quirk.
+//
+// USAGE STATUS: ships + lighthouses moved to LineModel (PRIMITIVE_LINES) and
+// no longer use this shader — it could only draw box-aligned edges, which
+// can't reproduce JS-style octagonal lighthouses or pentagonal hulls. Still
+// used by the island plinth (axis-aligned box) and kept for future tickets
+// (projectile balls, glitch galleon variant).
 
 shader_type spatial;
 render_mode unshaded, fog_disabled, cull_disabled;

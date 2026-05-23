@@ -257,41 +257,36 @@ func _load_ship_class(class_id: String) -> ShipClass:
 	return load(path) as ShipClass
 
 
-# Placeholder visual: composite wireframe ship — hull + bowsprit + mast + yard
-# + sail. Built via ShipMesh.build_player so future enemy ships can reuse the
-# same geometry generator. BoxMesh / PlaneMesh have per-face UVs so the
-# wireframe shader draws clean rectangular outlines.
+# Player visual: a LineModel rendered as PRIMITIVE_LINES — pentagonal hull,
+# mast, billowing sail with ribbing. Coordinates ported verbatim from the JS
+# prototype's `dinghy` model (see data/models/dinghy.tres + the comment on
+# that file for the JS→Godot Z-flip).
 #
-# Inspired by the JS prototype's dinghy / sloop in models3d.js, but boxified.
-# A post-parity ticket may swap in proper hand-modelled hull/sail geometry per
-# ship class.
+# `_mesh_instance` continues to point at the resulting MeshInstance3D so
+# downstream code (and future tickets) that needs a "ship visual" handle
+# still has one.
 #
-# `_mesh_instance` keeps pointing at the hull child so any future references to
-# "the ship's primary visual" stay valid.
+# The wireframe_material export is kept on the class for backwards-compat
+# with OpenSea.tscn (until the next scene-cleaning ticket removes the
+# export); it is intentionally unused here — LineModel ships its own
+# unshaded-emissive StandardMaterial3D.
 func _build_placeholder_mesh() -> void:
-	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
-	if render_tuning == null:
-		push_warning("PlayerShip: failed to load RenderTuning resource - using runtime defaults")
-		render_tuning = RenderTuning.new()
+	var model := load("res://data/models/dinghy.tres") as LineModel
+	if model == null:
+		push_warning("PlayerShip: dinghy model failed to load")
+		return
 
-	# Player faction green per ARCHITECTURE.md § "Rendering decisions".
+	# Player faction green per ARCHITECTURE.md § "Rendering decisions". Override
+	# the model's stored colour so the resource can be reused for non-player
+	# dinghies later with a different tint.
 	var player_green := Color("#33ff33")
-	var glow_color_v3 := Vector3(player_green.r, player_green.g, player_green.b)
+	model = model.duplicate() as LineModel
+	model.color = player_green
 
-	if wireframe_material == null:
-		push_warning("PlayerShip: wireframe_material export is null - ShipMesh will build a fresh material from the wireframe shader")
-
-	var parts := ShipMesh.build_player(
-		wireframe_material,
-		glow_color_v3,
-		render_tuning.wireframe_glow_intensity,
-		render_tuning.wireframe_edge_thickness,
-	)
-	var visual := parts["root"] as Node3D
-	_mesh_instance = parts["hull"] as MeshInstance3D
-
-	# Lift the whole composite so the hull bottom sits roughly at the waterline.
-	# Hull centre is y=0 in local frame → lift by half-hull-height (0.5).
-	visual.position = Vector3(0.0, 0.5, 0.0)
-	add_child(visual)
+	# JS dinghy coords are in metres. The JS canvas renderer used scale=1 for
+	# the player too (game.js sea-spray block), so no extra scale is needed.
+	var inst := model.build_mesh_instance(1.0)
+	inst.name = "ShipVisual"
+	_mesh_instance = inst
+	add_child(inst)
 

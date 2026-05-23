@@ -7,8 +7,10 @@ class_name CameraTuning extends Tuning
 @export var base_orbit: float = 11.5
 @export var radius_scale_factor: float = 1.5
 
-# Default vertical orbit angle (radians). JS: 0.30.
-@export var base_pitch: float = 0.30
+# Default vertical orbit angle (radians). JS used 0.30 (~17°), but
+# user-reported playtesting wanted a higher view to show the pentagonal hull
+# top-down (see PR notes on godot-fix-vector-rendering). Bumped to 0.5 (~28°).
+@export var base_pitch: float = 0.5
 @export var min_pitch: float = 0.05
 @export var max_pitch: float = 1.2
 
