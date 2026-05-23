@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RumorDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/rumor_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "portobelo_sugar"
+text = "A rich harvest of Sugar is sitting in Portobelo for 8 Doubloons. Sail deep north-east into Smuggler's Run and you'll find eager buyers paying near 50!"
+profit_rating = 42

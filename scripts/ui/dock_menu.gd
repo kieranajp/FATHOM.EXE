@@ -52,7 +52,12 @@ func _on_market_pressed() -> void:
 
 
 func _on_tavern_pressed() -> void:
-	EventBus.hud_message.emit("Tavern coming soon (T05)", "info")
+	var tavern_scene := load("res://scenes/ui/Tavern.tscn") as PackedScene
+	if tavern_scene != null:
+		var tavern_inst = tavern_scene.instantiate()
+		get_parent().add_child(tavern_inst)
+		self.visible = false
+		tavern_inst.tree_exited.connect(func(): self.visible = true)
 
 
 func _on_shipyard_pressed() -> void:

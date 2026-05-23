@@ -1,11 +1,107 @@
-[gd_scene load_steps=1 format=3]
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/tavern.gd" id="1"]
 
 [node name="Tavern" type="Control"]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
 
-[node name="TODO" type="Label" parent="."]
-offset_right = 200.0
-offset_bottom = 40.0
-text = "TODO: T06 tavern UI"
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -240.0
+offset_right = 300.0
+offset_bottom = 240.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="V" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Panel/V"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.733333, 0, 1)
+theme_override_font_sizes/font_size = 24
+text = "THE SALTY TANKARD TAVERN"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Panel/V"]
+modulate = Color(1, 1, 1, 0.7)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "A smoky hall filled with sailors, card players, and the smell of salted cod and cheap rum."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="BarkeepPanel" type="VBoxContainer" parent="Panel/V"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BarkeepHeader" type="Label" parent="Panel/V/BarkeepPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.733333, 0, 1)
+text = "🧑‍✈️ THE BARKEEP"
+horizontal_alignment = 1
+
+[node name="Actions" type="HBoxContainer" parent="Panel/V/BarkeepPanel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="Ask" type="Button" parent="Panel/V/BarkeepPanel/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "[R] Chat with Barkeep"
+
+[node name="Buy" type="Button" parent="Panel/V/BarkeepPanel/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "[B] Buy a Round (10 D)"
+
+[node name="Console" type="PanelContainer" parent="Panel/V"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ConsoleV" type="VBoxContainer" parent="Panel/V/Console"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ConsoleHeader" type="Label" parent="Panel/V/Console/ConsoleV"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.733333, 0, 0.5)
+theme_override_font_sizes/font_size = 10
+text = "WHISPERS IN THE TAVERN:"
+horizontal_alignment = 1
+
+[node name="Message" type="Label" parent="Panel/V/Console/ConsoleV"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_vertical = 3
+text = "\"Speak up, friend! What can I get ya?\""
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="Footer" type="HBoxContainer" parent="Panel/V"]
+layout_mode = 2
+
+[node name="Gold" type="Label" parent="Panel/V/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.733333, 0, 1)
+text = "GOLD: 150 D"
+
+[node name="Leave" type="Button" parent="Panel/V/Footer"]
+layout_mode = 2
+text = "[ESC] Return to Dock Menu"

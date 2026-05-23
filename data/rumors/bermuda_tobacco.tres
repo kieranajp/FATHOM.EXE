@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RumorDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/rumor_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bermuda_tobacco"
+text = "Bermuda's crop of Tobacco is so abundant it goes for 8 Doubloons, but back home in Port Royal's grand barracks they are buying it for 42!"
+profit_rating = 34

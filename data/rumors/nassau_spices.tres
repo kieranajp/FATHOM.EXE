@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RumorDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/rumor_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "nassau_spices"
+text = "Spices are gathered in Nassau Reef for just 12 Doubloons. Take them straight to Maracaibo's trade house and you'll pocket 42 Doubloons per sack!"
+profit_rating = 30

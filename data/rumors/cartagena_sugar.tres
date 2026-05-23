@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RumorDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/rumor_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "cartagena_sugar"
+text = "Cartagena's plantations are practically giving away crates of Sugar at 8 Doubloons! Sail it to the eastern reef outposts in Smuggler's Run to sell it for 48 Doubloons!"
+profit_rating = 40
