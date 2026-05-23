@@ -19,3 +19,10 @@ class_name HudTuning extends Tuning
 
 # Wind-needle visual length in pixels. Drawn from a 64px compass dial centre.
 @export var wind_needle_length_px: float = 22.0
+
+# Uniform UI scale applied to the HUD CanvasLayer transform. Bumped above 1.0
+# after playtesting flagged the bordered-panel HUD as too small vs the JS
+# reference. Cheapest scaling option — single transform multiply, all anchors
+# (right-edge StatusPanel, bottom Clock, etc.) follow because the CanvasLayer
+# transform is applied before screen-space anchor evaluation.
+@export var ui_scale: float = 1.5
