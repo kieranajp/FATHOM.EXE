@@ -62,6 +62,7 @@ The JS prototype on `main` is a **playable reference spec**, not a port target. 
 ## Godot-specific gotchas
 
 - **`.godot/` cache rebuild per worktree.** The `.godot/` directory is gitignored. Each worktree rebuilds it on first editor open — seconds for an empty/small project, not minutes. Don't panic.
+  - On first boot in a fresh worktree, run `godot --path . --headless --import` once before `godot --path . --headless --quit` will exit clean. The import pass populates the global `class_name` cache (also inside `.godot/` and gitignored); without it, headless boot errors on unresolved class references.
 - **`uid_cache.bin`** lives inside `.godot/`. Being gitignored is fine, but if you see editor freezes or "missing UID" errors after a branch switch, nuke `.godot/` and reopen to force a clean rebuild.
 - **Typed Dictionaries** (`Dictionary[String, int]`) work in 4.6+, with one quirk: **nested typing is disallowed** — `Dictionary[String, Dictionary[String, int]]` won't compile. Inner Dictionary must be untyped. Document the inner schema in a comment if it matters.
 - **`ImmediateMesh`** is the right choice for per-frame regenerated geometry (the ocean grid). Don't reach for `ArrayMesh` + `SurfaceTool` for things that update every frame — `ImmediateMesh` exists exactly for this.
