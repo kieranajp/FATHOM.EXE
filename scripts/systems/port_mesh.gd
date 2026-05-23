@@ -2,18 +2,24 @@
 #
 # Produces a low-poly visual for a PortDef so the player can see ports at sea
 # and crash into them. Geometry is intentionally crude (a cone + a cylinder
-# stack) — T09 owns the final wireframe-shaded look.
+# stack) — a real custom hull/island mesh ticket post-parity will replace it.
 #
 # JS reference: game.js:3012-3042 (procedural topographic islands + lighthouse
 # + spinning yellow beacon).
+#
+# Materials: every visible mesh uses T09's wireframe shader (res://assets/shaders/
+# wireframe.gdshader) per ARCHITECTURE.md § "Rendering decisions". The shader's
+# UV-based edge detection looks clean on per-face-unwrapped meshes (BoxMesh,
+# PlaneMesh) but is quirky on CylinderMesh — only the U seam reliably reads as
+# an edge, so the island/lighthouse cylinders render as a single vertical strip
+# rather than a full wire silhouette. Accepted as a placeholder-geometry quirk;
+# replacing the geometry with proper per-face UVs is the right fix, not changing
+# the shader. See wireframe.gdshader for the matching comment.
 class_name PortMesh extends RefCounted
 
-# Material approach mirrors player_ship.gd's placeholder: unshaded
-# StandardMaterial3D with emission_energy_multiplier ~ 1.5 so the silhouette
-# reads against the bloom/AgX tonemapped ocean.
-const EMISSION_ENERGY: float = 1.5
+const WIREFRAME_SHADER := preload("res://assets/shaders/wireframe.gdshader")
 const LIGHTHOUSE_COLOUR: Color = Color(1, 1, 1, 1)
-const BEACON_COLOUR: Color = Color(1, 1, 0.4, 1)
+const BEACON_COLOUR: Color = Color(1, 0.85, 0.2, 1)
 
 # Builds the full visual for a port. Returns a Node3D parent containing the
 # island mesh, lighthouse, and a beacon node that the caller can spin in
@@ -34,7 +40,7 @@ static func build(port_def: PortDef) -> Node3D:
 	island_mesh.radial_segments = 12
 	island_mesh.rings = 2
 	island.mesh = island_mesh
-	island.material_override = _make_emissive_material(port_def.color)
+	island.material_override = _make_wireframe_material(port_def.color)
 	# CylinderMesh is centred at origin; lift so the base sits at y=0 (waterline).
 	island.position = Vector3(0.0, port_def.height * 0.5, 0.0)
 	root.add_child(island)
@@ -54,7 +60,7 @@ static func build(port_def: PortDef) -> Node3D:
 	column_mesh.height = 4.0
 	column_mesh.radial_segments = 8
 	lh_column.mesh = column_mesh
-	lh_column.material_override = _make_emissive_material(LIGHTHOUSE_COLOUR)
+	lh_column.material_override = _make_wireframe_material(LIGHTHOUSE_COLOUR)
 	lh_column.position = Vector3(0.0, 2.0, 0.0)
 	lh_root.add_child(lh_column)
 
@@ -67,7 +73,7 @@ static func build(port_def: PortDef) -> Node3D:
 	cap_mesh.height = 1.2
 	cap_mesh.radial_segments = 8
 	lh_cap.mesh = cap_mesh
-	lh_cap.material_override = _make_emissive_material(LIGHTHOUSE_COLOUR)
+	lh_cap.material_override = _make_wireframe_material(LIGHTHOUSE_COLOUR)
 	lh_cap.position = Vector3(0.0, 4.6, 0.0)
 	lh_root.add_child(lh_cap)
 
@@ -83,7 +89,7 @@ static func build(port_def: PortDef) -> Node3D:
 	var beam_mesh := BoxMesh.new()
 	beam_mesh.size = Vector3(0.2, 0.2, 8.0)
 	beam.mesh = beam_mesh
-	beam.material_override = _make_emissive_material(BEACON_COLOUR)
+	beam.material_override = _make_wireframe_material(BEACON_COLOUR)
 	# Anchor one end at the lighthouse and extend along -Z (Godot forward).
 	beam.position = Vector3(0.0, 0.0, -4.0)
 	beacon.add_child(beam)
@@ -91,12 +97,12 @@ static func build(port_def: PortDef) -> Node3D:
 	return root
 
 
-static func _make_emissive_material(colour: Color) -> StandardMaterial3D:
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = colour
-	mat.emission_enabled = true
-	mat.emission = colour
-	mat.emission_energy_multiplier = EMISSION_ENERGY
-	mat.disable_fog = true
+static func _make_wireframe_material(colour: Color) -> ShaderMaterial:
+	# Shader expects glow_color as Vector3 (not Color) — see player_ship.gd and
+	# OpenSea.tscn for the same convention. Other uniforms (core_color,
+	# glow_intensity, edge_thickness) keep their shader defaults; the port mesh
+	# doesn't have per-instance reasons to override them.
+	var mat := ShaderMaterial.new()
+	mat.shader = WIREFRAME_SHADER
+	mat.set_shader_parameter("glow_color", Vector3(colour.r, colour.g, colour.b))
 	return mat

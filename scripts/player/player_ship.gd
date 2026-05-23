@@ -257,19 +257,12 @@ func _load_ship_class(class_id: String) -> ShipClass:
 	return load(path) as ShipClass
 
 
-# Placeholder visual: a stretched cube with bright emission. Real mesh
-# geometry + edge wireframe shader is T09's job — we just need *something*
-# visible.
-#
-# Why not the F1 wireframe shader stub? It writes EMISSION at energy 1.0,
-# which (against the bloom/AgX-tonemapped WorldEnvironment) gets crushed to
-# near-black relative to the wave grid's 1.5x emission_energy_multiplier.
-# Result: a black hull-shaped void on the cyan grid. We mirror the grid's
-# StandardMaterial3D pattern with a 1.5x multiplier so the player ship reads
-# as a coloured silhouette until T09 ships the real wireframe pass.
-#
-# `wireframe_material` is still wired through `@export` for parity with the
-# scene and as a hook for T09 — it just isn't applied to the placeholder.
+# Placeholder visual: a stretched cube rendering as a glowing vector wireframe.
+# Uses T09's wireframe.gdshader via the exported `wireframe_material` (wired in
+# OpenSea.tscn). The box geometry stays as placeholder until a real hull-mesh
+# ticket lands post-parity — BoxMesh has per-face UVs so the UV-based edge
+# detection draws all 12 edges cleanly. The StandardMaterial3D branch below is
+# a defensive fallback for the case where the scene export is missing.
 func _build_placeholder_mesh() -> void:
 	_mesh_instance = MeshInstance3D.new()
 	_mesh_instance.name = "Placeholder"
@@ -278,16 +271,35 @@ func _build_placeholder_mesh() -> void:
 	# to see waves wash around.
 	box.size = Vector3(2.0, 1.5, 5.0)
 	_mesh_instance.mesh = box
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	# Player faction green per ARCHITECTURE.md § "Rendering decisions".
-	var player_green := Color("#33ff33")
-	mat.albedo_color = player_green
-	mat.emission_enabled = true
-	mat.emission = player_green
-	mat.emission_energy_multiplier = 1.5
-	mat.disable_fog = true
-	_mesh_instance.material_override = mat
+
+	# Load render tuning dynamically
+	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
+	if render_tuning == null:
+		push_warning("PlayerShip: failed to load RenderTuning resource - using runtime defaults")
+		render_tuning = RenderTuning.new()
+
+	if wireframe_material != null:
+		var wireframe_mat := wireframe_material.duplicate() as ShaderMaterial
+		# Player faction green per ARCHITECTURE.md § "Rendering decisions".
+		var player_green := Color("#33ff33")
+		var glow_color_v3 := Vector3(player_green.r, player_green.g, player_green.b)
+		wireframe_mat.set_shader_parameter("glow_color", glow_color_v3)
+		wireframe_mat.set_shader_parameter("glow_intensity", render_tuning.wireframe_glow_intensity)
+		wireframe_mat.set_shader_parameter("edge_thickness", render_tuning.wireframe_edge_thickness)
+		_mesh_instance.material_override = wireframe_mat
+	else:
+		push_warning("PlayerShip: wireframe_material export is null - falling back to solid color")
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		var player_green := Color("#33ff33")
+		mat.albedo_color = player_green
+		mat.emission_enabled = true
+		mat.emission = player_green
+		mat.emission_energy_multiplier = 1.5
+		mat.disable_fog = true
+		_mesh_instance.material_override = mat
+
 	# Lift the visual so the mesh centre is around the waterline.
 	_mesh_instance.position = Vector3(0.0, 0.5, 0.0)
 	add_child(_mesh_instance)
+
