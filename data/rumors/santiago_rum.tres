@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RumorDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/rumor_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "santiago_rum"
+text = "A merchant from the south tells me the Spaniards in Santiago have a massive dry spell and are paying near 45 Doubloons for a single drop of imported Rum!"
+profit_rating = 25

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RumorDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/rumor_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "smugglers_spices"
+text = "The stormy outposts of Smuggler's Run grow rare Spices for 12 Doubloons, but carrying them to the hot kitchens of the Spanish Main yields 42 Doubloons!"
+profit_rating = 30

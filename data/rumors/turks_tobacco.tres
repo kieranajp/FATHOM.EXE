@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RumorDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/rumor_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "turks_tobacco"
+text = "Turk's Island has the finest weed and leaves. Tobacco bundles are cheap at 8 Doubloons, while the officers in Pirate's Cradle will gladly pay 42!"
+profit_rating = 34

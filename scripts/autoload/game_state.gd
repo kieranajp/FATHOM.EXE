@@ -12,6 +12,8 @@ var port_ship_stock: Dictionary = {}             # port_id -> { class_id: int }
 var factions: Dictionary = {}                    # faction_id -> FactionState (post-parity)
 var crew: CrewState                              # post-parity
 var officers: Array[Officer] = []                # post-parity
+var active_rumor: String = ""
+var last_drink_purchased: bool = false
 
 
 func _ready() -> void:
@@ -33,3 +35,5 @@ func reset_new_game() -> void:
 	factions = {}
 	crew = CrewState.new()
 	officers = []
+	active_rumor = ""
+	last_drink_purchased = false

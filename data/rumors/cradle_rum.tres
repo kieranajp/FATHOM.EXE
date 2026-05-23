@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RumorDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/rumor_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "cradle_rum"
+text = "Don't sell your Rum in Pirate's Cradle, matey! Gather a heavy load and transit to the Spanish Main, where the noble houses buy it up at over 40 Doubloons!"
+profit_rating = 20
