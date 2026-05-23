@@ -1,6 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Shader" path="res://assets/shaders/wireframe.gdshader" id="1"]
+[ext_resource type="Script" path="res://scripts/systems/ocean.gd" id="2"]
+[ext_resource type="Resource" path="res://data/tuning/world.tres" id="3"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_wire"]
 shader = ExtResource("1")
@@ -37,3 +39,7 @@ surface_material_override/0 = SubResource("ShaderMaterial_wire")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
 text = "FATHOM.EXE foundations smoke scene"
 billboard = 1
+
+[node name="Ocean" type="Node3D" parent="."]
+script = ExtResource("2")
+tuning = ExtResource("3")
