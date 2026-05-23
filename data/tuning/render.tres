@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RenderTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/render_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+wireframe_glow_intensity = 4.0
+wireframe_edge_thickness = 0.015
+crt_warp_amount = 4.0
+crt_scanline_intensity = 0.15
+crt_scanline_frequency = 540.0
+crt_vignette_intensity = 15.0
+crt_vignette_power = 0.25
+crt_chromatic_aberration = 1.5
+crt_flicker_intensity = 0.003
+crt_flicker_speed = 60.0

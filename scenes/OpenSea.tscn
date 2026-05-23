@@ -19,6 +19,11 @@ background_mode = 1
 background_color = Color(0.0196078, 0.0196078, 0.0313726, 1)
 tonemap_mode = 4
 glow_enabled = true
+glow_intensity = 1.2
+glow_strength = 1.0
+glow_bloom = 0.2
+glow_hdr_threshold = 0.8
+
 
 [sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_smoke"]
 
