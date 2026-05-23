@@ -537,8 +537,8 @@ horizontal_alignment = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 16.0
-offset_top = -132.0
-offset_right = 296.0
+offset_top = -188.0
+offset_right = 320.0
 offset_bottom = -16.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("PanelControls")
@@ -547,32 +547,47 @@ theme_override_styles/panel = SubResource("PanelControls")
 theme_override_constants/separation = 1
 
 [node name="L1" type="Label" parent="Root/ControlsPanel/V"]
-text = "SAILS: [W] RAISE / [S] LOWER"
+text = "SAILS:     [W] RAISE / [S] LOWER"
 theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
 theme_override_font_sizes/font_size = 10
 
 [node name="L2" type="Label" parent="Root/ControlsPanel/V"]
-text = "STEER: [A] PORT / [D] STARBOARD"
+text = "STEER:     [A] PORT / [D] STARBOARD"
 theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
 theme_override_font_sizes/font_size = 10
 
 [node name="L3" type="Label" parent="Root/ControlsPanel/V"]
-text = "CAMERA: [DRAG MOUSE] TO ORBIT LOOK"
+text = "CAMERA:    [LMB] DRAG TO ORBIT LOOK"
 theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
 theme_override_font_sizes/font_size = 10
 
 [node name="L4" type="Label" parent="Root/ControlsPanel/V"]
-text = "COMBAT: [Q] FIRE PORT / [E] FIRE STBD"
+text = "AIM:       [RMB] HOLD + DRAG / [SPACE] HOLD"
 theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
 theme_override_font_sizes/font_size = 10
 
 [node name="L5" type="Label" parent="Root/ControlsPanel/V"]
-text = "INVENTORY: [I] VIEW HOLD MANIFEST"
+text = "COMBAT:    [LMB] FIRE WHILE AIMING / [Q] / [E]"
 theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
 theme_override_font_sizes/font_size = 10
 
 [node name="L6" type="Label" parent="Root/ControlsPanel/V"]
-text = "MAP: [M] SECTOR CHART     DOCK: [F] AT PORT"
+text = "AMMO:      [1] BALL / [2] CHAIN / [3] GRAPE"
+theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
+theme_override_font_sizes/font_size = 10
+
+[node name="L7" type="Label" parent="Root/ControlsPanel/V"]
+text = "INVENTORY: [I] VIEW HOLD MANIFEST"
+theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
+theme_override_font_sizes/font_size = 10
+
+[node name="L8" type="Label" parent="Root/ControlsPanel/V"]
+text = "MAP:       [M] SECTOR CHART"
+theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
+theme_override_font_sizes/font_size = 10
+
+[node name="L9" type="Label" parent="Root/ControlsPanel/V"]
+text = "DOCK:      [F] AT PORT"
 theme_override_colors/font_color = Color(0.9, 1, 1, 0.5)
 theme_override_font_sizes/font_size = 10
 
