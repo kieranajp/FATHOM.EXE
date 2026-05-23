@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CameraTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/camera_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+base_orbit = 11.5
+radius_scale_factor = 1.5
+base_pitch = 0.30
+min_pitch = 0.05
+max_pitch = 1.2
+follow_ease_rate = 6.0
+mouse_pitch_sensitivity = 0.005
+mouse_yaw_sensitivity = 0.005
+offset_decay_steering = 2.8
+offset_decay_cruising = 0.45
+roll_blend = 0.3
+look_height_factor = 0.35
+bob_amplitude = 0.15
+bob_frequency = 0.8
+aim_flank_yaw_offset = 1.5707963267948966

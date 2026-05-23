@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SailingTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/sailing_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+speed_ease_rate = 1.2
+rudder_input_rate = 6.0
+rudder_max = 1.0
+rudder_center_rate = 6.0
+turn_factor = 1.8
+turn_factor_speed = 0.45
+turn_scale = 0.22
+sail_ramp_rate = 1.5
+bow_sample_distance = 2.0
+beam_sample_distance = 1.0
+roll_factor = 0.08
+collision_bounce_speed = -2.5
+collision_immunity_seconds = 3.0
+collision_damage = 10.0
+collision_radius_margin = -2.0
