@@ -3,6 +3,9 @@
 # travel_completed handler on autoload/time_system.gd.
 class_name TravelTuning extends Tuning
 
+# Proximity (in metres) to hostile ships that blocks fast travel.
+@export var travel_lockout_hostile_radius: float = 160.0
+
 # Probability (0..1) that a trip rolls a storm and takes the longer duration.
 @export var storm_chance: float = 0.3
 

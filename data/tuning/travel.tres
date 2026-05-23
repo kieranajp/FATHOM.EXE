@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+travel_lockout_hostile_radius = 160.0
 storm_chance = 0.3
 calm_duration_seconds = 3.0
 storm_extension_seconds = 2.0
