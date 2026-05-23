@@ -79,6 +79,19 @@ func get_speed_fraction() -> float:
 	return clampf(speed / ship_class.base_max_speed, -1.0, 1.0)
 
 
+# Sign convention (Godot right-handed, +Y up, -Z forward):
+#   positive rudder == starboard (right) turn == clockwise from above ==
+#   NEGATIVE yaw delta. (Positive yaw is CCW about +Y, which swings the bow
+#   from -Z towards -X — that's a port/left turn.)
+#
+# Don't flip this back without first re-reading docs/ARCHITECTURE.md
+# § "Coordinate conversions from JS reference" — the JS prototype uses the
+# opposite handedness and porting it naively reverses the steering.
+# See test/test_steering.gd.
+static func _compute_yaw_delta(rudder_value: float, turn_rate: float, delta: float) -> float:
+	return -rudder_value * turn_rate * delta
+
+
 # Input. Right-mouse + space are handled in _unhandled_input so the camera can
 # read drag deltas via the same event stream. _physics_process handles held
 # keys via Input.is_action_pressed for frame-rate independent ramping.
@@ -144,7 +157,7 @@ func _tick_sailing(delta: float) -> void:
 	# Steering: rudder rotates the ship. Turn rate scales with speed so a
 	# stopped ship turns slowly (realistic), an accelerating one snappy.
 	var turn_rate: float = (tuning.turn_factor + speed * tuning.turn_factor_speed) * tuning.turn_scale
-	yaw += rudder * turn_rate * delta
+	yaw += _compute_yaw_delta(rudder, turn_rate, delta)
 
 	# Compute target speed: max_speed * sail_percent * efficiency * debuff.
 	var efficiency: float = SailingMath.efficiency(yaw, WindSystem.angle)
