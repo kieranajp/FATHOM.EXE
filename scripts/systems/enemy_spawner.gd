@@ -80,3 +80,10 @@ func spawn_pirates_near(centre: Vector3, count: int) -> int:
 
 func _on_archipelago_changed(_arch: ArchipelagoDef) -> void:
 	_spawned_initial = false  # next _process will seed the new zone
+
+
+# Spawns a specific ship class at the given world position (T38 dev menu).
+func spawn_at(ship_class_id: String, pos: Vector3, faction_id: String) -> EnemyShip:
+	if _combat == null:
+		return null
+	return _combat.spawn_enemy(pos, ship_class_id, faction_id, _player, false)

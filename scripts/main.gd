@@ -9,6 +9,7 @@ const OPEN_SEA := preload("res://scenes/OpenSea.tscn")
 const PORT := preload("res://scenes/Port.tscn")
 const MAP_SCENE := preload("res://scenes/Map.tscn")
 const TRAVEL_SCENE := preload("res://scenes/Travel.tscn")
+const DEV_MENU_SCENE := preload("res://scenes/ui/DevMenu.tscn")
 const PORT_DIR := "res://data/ports/"
 const ARCHIPELAGO_DIR := "res://data/archipelagos/"
 
@@ -18,7 +19,9 @@ var _dock_tuning: DockTuning
 var _respawn_tuning: RespawnTuning
 var _is_map_open: bool = false
 var _is_travelling: bool = false
+var _is_dev_menu_open: bool = false
 var _map_instance: Node = null
+var _dev_menu_instance: Node = null
 
 
 func _ready() -> void:
@@ -35,6 +38,7 @@ func _ready() -> void:
 	EventBus.port_docked.connect(_on_port_docked)
 	EventBus.port_undocked.connect(_on_port_undocked)
 	EventBus.map_toggled.connect(_on_map_toggled_signal)
+	EventBus.dev_menu_toggled.connect(_on_dev_menu_toggled_signal)
 	EventBus.travel_started.connect(_on_travel_started)
 	EventBus.travel_completed.connect(_on_travel_completed)
 	EventBus.player_death.connect(_on_player_death)
@@ -49,6 +53,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_tree().quit()
 	elif event.is_action_pressed("map"):
 		EventBus.map_toggled.emit(not _is_map_open)
+	elif event.is_action_pressed("dev_menu"):
+		EventBus.dev_menu_toggled.emit(not _is_dev_menu_open)
 
 
 func _on_map_toggled_signal(open: bool) -> void:
@@ -61,6 +67,20 @@ func _on_map_toggled_signal(open: bool) -> void:
 		if _map_instance != null:
 			_map_instance.queue_free()
 			_map_instance = null
+
+
+func _on_dev_menu_toggled_signal(open: bool) -> void:
+	_is_dev_menu_open = open
+	if open:
+		if _dev_menu_instance == null:
+			_dev_menu_instance = DEV_MENU_SCENE.instantiate()
+			add_child(_dev_menu_instance)
+			get_tree().paused = true
+	else:
+		if _dev_menu_instance != null:
+			_dev_menu_instance.queue_free()
+			_dev_menu_instance = null
+			get_tree().paused = false
 
 
 func _on_travel_started(target: ArchipelagoDef) -> void:
