@@ -26,11 +26,20 @@ class_name CombatVisualsTuning extends Tuning
 # fallback path.
 @export var projectile_emission_energy: float = 2.5
 
-# Head marker size for ball/grape projectiles, in metres. The "+" tick at the
-# projectile head dominates how prominent the projectile reads at mid-distance.
-# Bumped from ~0.25m (round-4 playtest: cannonballs invisibly tiny mid-flight)
-# to 0.6m. Grape pellets and chain ticks stay smaller — they read as clusters,
-# not single bright points.
+# Head marker size for ball/grape projectiles, in metres.
+#
+# Round-4 drew a 3-axis "+" of line ticks at the head — invisibly thin on a
+# 4K display (PRIMITIVE_LINES is 1px in Vulkan) and read as an X-cross from
+# the chase cam rather than a solid threat. Round-5 swaps that for a single
+# camera-facing FILLED quad (one per ball/grape projectile) emitted into a
+# dedicated PRIMITIVE_TRIANGLES surface; the size below is the quad's
+# half-extent in world metres, so 0.6 = 1.2m square at the head.
+#
+# Grape pellets get their own (smaller) size so the cluster reads as many
+# tiny dots rather than a single fat blob.
+# `projectile_head_size` is retained for chain-shot tick scaling.
+@export var projectile_ball_size: float = 0.6
+@export var projectile_grape_size: float = 0.3
 @export var projectile_head_size: float = 0.6
 
 # --- Splashes. ---
