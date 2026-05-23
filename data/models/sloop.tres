@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="LineModel" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/line_model.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+
+; Sloop — ported verbatim from FATHOM.EXE main:models3d.js (the `sloop` entry).
+; 22 vertices, ~28 edges. Mainmast + main sail + triangular jib.
+;
+; AXIS CONVERSION: JS is left-handed with +Z forward (north); Godot is
+; right-handed with -Z forward. Every JS vertex (x, y, z) was Z-flipped to
+; (x, y, -z) at port time. JS forward (+Z) → Godot forward (-Z).
+;
+; sailDeformations — JS `mastZ` is also Z-flipped here (mast_z = -mastZ).
+; The renderer interpolates linearly from anchored (open_factor=0) to full
+; billow (open_factor=1).
+
+vertices = PackedVector3Array(
+	0, 2.2, -6,
+	0, 0.2, -6,
+	-2.0, 1.8, -1.5,
+	-1.2, 0.2, -1.5,
+	2.0, 1.8, -1.5,
+	1.2, 0.2, -1.5,
+	-1.6, 2.0, 4.5,
+	-1.0, 0.4, 4.5,
+	1.6, 2.0, 4.5,
+	1.0, 0.4, 4.5,
+	0, 3.5, -7.5,
+	0, 1.5, -1.8,
+	0, 10.5, -1.8,
+	-3.2, 3.0, -1.4,
+	3.2, 3.0, -1.4,
+	-2.2, 9.0, -1.8,
+	2.2, 9.0, -1.8,
+	0, 6.0, -3.0,
+	0, 9.0, -1.8,
+	0, 3.0, -6.8,
+	-1.8, 3.2, -3.2,
+	1.8, 3.2, -3.2
+)
+
+edges = PackedInt32Array(
+	0, 1, 0, 2, 1, 3, 2, 3,
+	0, 4, 1, 5, 4, 5,
+	2, 6, 3, 7, 6, 7,
+	4, 8, 5, 9, 8, 9,
+	6, 8, 7, 9,
+	0, 10, 1, 10,
+	11, 12,
+	15, 16, 13, 14,
+	15, 13, 16, 14,
+	12, 17, 17, 11,
+	15, 17, 16, 17, 13, 17, 14, 17,
+	18, 19,
+	18, 20, 19, 20, 20, 11,
+	18, 21, 19, 21, 21, 11
+)
+
+color = Color(0.2, 1, 0.4, 1)
+
+deformations = [{
+	"indices": PackedInt32Array(13, 14, 15, 16, 17),
+	"top_y": 9.0,
+	"mast_z": -1.8,
+}, {
+	"indices": PackedInt32Array(20, 21),
+	"top_y": 9.0,
+	"mast_z": -1.8,
+}]
