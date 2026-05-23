@@ -79,6 +79,19 @@ func get_speed_fraction() -> float:
 	return clampf(speed / ship_class.base_max_speed, -1.0, 1.0)
 
 
+# Sign convention (Godot right-handed, +Y up, -Z forward):
+#   positive rudder == starboard (right) turn == clockwise from above ==
+#   NEGATIVE yaw delta. (Positive yaw is CCW about +Y, which swings the bow
+#   from -Z towards -X — that's a port/left turn.)
+#
+# Don't flip this back without first re-reading docs/ARCHITECTURE.md
+# § "Coordinate conversions from JS reference" — the JS prototype uses the
+# opposite handedness and porting it naively reverses the steering.
+# See test/test_steering.gd.
+static func _compute_yaw_delta(rudder_value: float, turn_rate: float, delta: float) -> float:
+	return -rudder_value * turn_rate * delta
+
+
 # Input. Right-mouse + space are handled in _unhandled_input so the camera can
 # read drag deltas via the same event stream. _physics_process handles held
 # keys via Input.is_action_pressed for frame-rate independent ramping.
@@ -144,7 +157,7 @@ func _tick_sailing(delta: float) -> void:
 	# Steering: rudder rotates the ship. Turn rate scales with speed so a
 	# stopped ship turns slowly (realistic), an accelerating one snappy.
 	var turn_rate: float = (tuning.turn_factor + speed * tuning.turn_factor_speed) * tuning.turn_scale
-	yaw += rudder * turn_rate * delta
+	yaw += _compute_yaw_delta(rudder, turn_rate, delta)
 
 	# Compute target speed: max_speed * sail_percent * efficiency * debuff.
 	var efficiency: float = SailingMath.efficiency(yaw, WindSystem.angle)
@@ -245,8 +258,19 @@ func _load_ship_class(class_id: String) -> ShipClass:
 	return load(path) as ShipClass
 
 
-# Placeholder visual: a stretched cube with the wireframe shader. Real mesh
-# geometry is T09's job — we just need *something* visible.
+# Placeholder visual: a stretched cube with bright emission. Real mesh
+# geometry + edge wireframe shader is T09's job — we just need *something*
+# visible.
+#
+# Why not the F1 wireframe shader stub? It writes EMISSION at energy 1.0,
+# which (against the bloom/AgX-tonemapped WorldEnvironment) gets crushed to
+# near-black relative to the wave grid's 1.5x emission_energy_multiplier.
+# Result: a black hull-shaped void on the cyan grid. We mirror the grid's
+# StandardMaterial3D pattern with a 1.5x multiplier so the player ship reads
+# as a coloured silhouette until T09 ships the real wireframe pass.
+#
+# `wireframe_material` is still wired through `@export` for parity with the
+# scene and as a hook for T09 — it just isn't applied to the placeholder.
 func _build_placeholder_mesh() -> void:
 	_mesh_instance = MeshInstance3D.new()
 	_mesh_instance.name = "Placeholder"
@@ -255,8 +279,16 @@ func _build_placeholder_mesh() -> void:
 	# to see waves wash around.
 	box.size = Vector3(2.0, 1.5, 5.0)
 	_mesh_instance.mesh = box
-	if wireframe_material != null:
-		_mesh_instance.material_override = wireframe_material
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	# Player faction green per ARCHITECTURE.md § "Rendering decisions".
+	var player_green := Color("#33ff33")
+	mat.albedo_color = player_green
+	mat.emission_enabled = true
+	mat.emission = player_green
+	mat.emission_energy_multiplier = 1.5
+	mat.disable_fog = true
+	_mesh_instance.material_override = mat
 	# Lift the visual so the mesh centre is around the waterline.
 	_mesh_instance.position = Vector3(0.0, 0.5, 0.0)
 	add_child(_mesh_instance)
