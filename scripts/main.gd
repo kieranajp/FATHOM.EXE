@@ -20,6 +20,14 @@ var _map_instance: Node = null
 
 func _ready() -> void:
 	_dock_tuning = load("res://data/tuning/dock.tres") as DockTuning
+	# Boot path: resume a saved game if one exists, otherwise fresh start.
+	# Persistence.load() applies onto GameState directly; on corruption or
+	# version mismatch it emits hud_message and falls back to a new game.
+	if Persistence.has_save():
+		if not Persistence.load():
+			GameState.reset_new_game()
+	else:
+		GameState.reset_new_game()
 	EventBus.port_docked.connect(_on_port_docked)
 	EventBus.port_undocked.connect(_on_port_undocked)
 	EventBus.map_toggled.connect(_on_map_toggled_signal)
