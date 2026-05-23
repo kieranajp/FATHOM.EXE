@@ -4,9 +4,11 @@
 #
 # Left-mouse drag adds a relative pitch/yaw offset; offsets decay to zero
 # when released (faster while steering, slower while cruising — JS feel).
-# Right-mouse hold → aim mode (PlayerShip owns the flag); camera freezes
-# orbit at the active flank yaw (±π/2). Space remains a keyboard alternative
-# for aim mode.
+# Right-mouse hold → aim mode (PlayerShip owns the flag); while aiming the
+# camera does NOT reposition — it stays exactly where the user dragged it
+# (matches JS game.js: the camera formula `final_yaw = player.yaw + mouse.yaw`
+# runs regardless of aim mode). Decay of the drag offset is paused while
+# aiming so the chosen vantage persists. Space remains a keyboard alternative.
 #
 # Left-click is multiplexed with PlayerShip's "fire while aiming" handler —
 # we only treat LMB as orbit-drag when `_player.aim_mode` is false. When
@@ -53,18 +55,11 @@ func _process(delta: float) -> void:
 		_drag_offset_yaw = lerpf(_drag_offset_yaw, 0.0, ease)
 		_drag_offset_pitch = lerpf(_drag_offset_pitch, 0.0, ease)
 
-	# Compose final orbit angles.
+	# Compose final orbit angles. Aim mode does NOT reposition the camera —
+	# matches JS game.js where `final_yaw = player.yaw + mouse.yaw` runs
+	# regardless of aim state. The user-chosen vantage persists; the decay
+	# block above is gated on `not aim_mode` to preserve it.
 	var final_yaw: float = _player.yaw + _drag_offset_yaw
-	if _player.aim_mode:
-		# Camera positions opposite the firing flank so the ship doesn't block
-		# the view of targets to that side — i.e. firing AWAY from camera.
-		# aim_side names the *firing* flank (port = -π/2 fire_yaw, starboard =
-		# +π/2 fire_yaw — see player_ship._tick_aim_state). To put the camera
-		# on the opposite side, invert when starboard.
-		var flank_offset: float = compute_aim_yaw_offset(
-			_player.aim_side, tuning.aim_flank_yaw_offset
-		)
-		final_yaw = _player.yaw + flank_offset
 	var final_pitch: float = clampf(
 		tuning.base_pitch + _drag_offset_pitch, tuning.min_pitch, tuning.max_pitch
 	)
@@ -111,18 +106,6 @@ func _process(delta: float) -> void:
 # to the camera.
 func get_drag_yaw_offset() -> float:
 	return _drag_offset_yaw
-
-
-# Static so test code can pin the camera-vs-firing-flank invariant without
-# spinning up a scene tree. Returns the yaw offset (from player.yaw) where the
-# chase camera should sit when aiming at `side`. The camera is placed OPPOSITE
-# the firing flank so it can see across the ship to the targets.
-static func compute_aim_yaw_offset(side: String, magnitude: float) -> float:
-	# side == "port"      → firing port (-π/2)      → camera on starboard (+magnitude)
-	# side == "starboard" → firing starboard (+π/2) → camera on port      (-magnitude)
-	if side == "starboard":
-		return -magnitude
-	return magnitude
 
 
 func _unhandled_input(event: InputEvent) -> void:
