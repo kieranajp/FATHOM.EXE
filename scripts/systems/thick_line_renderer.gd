@@ -93,23 +93,32 @@ static func _append_quad(
 		return
 	view_dir /= view_len
 	# Perpendicular to both line and view. When the edge is collinear with the
-	# view direction (e.g. a port's outer sea-level ring viewed from above-and-
-	# distant), the cross product collapses to zero. Falling back to a world-up-
-	# based perpendicular keeps the edge visible — the quad won't billboard
-	# perfectly, but a stable thin ribbon reads infinitely better than a
-	# disappearing line, and at the offending viewing angle the difference is
-	# imperceptible anyway. Was the cause of "island base vanishes at horizon"
-	# in round-4 playtest.
+	# view direction (e.g. a port's outer sea-level ring viewed end-on from a
+	# chase camera), the cross product collapses to zero.
+	#
+	# Round-4 fell back to UP × line — but for a HORIZONTAL line pointing toward
+	# the camera that produces a HORIZONTAL perpendicular, so the resulting
+	# quad lies in the horizontal plane and goes edge-on (invisible) from a
+	# horizontal chase-cam viewpoint. Was the cause of "island outer-ring base
+	# still vanishes at horizon" after round-4.
+	#
+	# Round-5: project world-UP onto the plane perpendicular to the line. For
+	# a horizontal line this yields world-up itself (VERTICAL perpendicular,
+	# vertical quad — visible from horizontal viewpoints). For a vertical line
+	# this collapses to zero, so we drop through to a world-right projection
+	# as the final last-resort.
 	var perp: Vector3 = view_dir.cross(line_dir)
 	var perp_len: float = perp.length()
 	if perp_len > 1e-5:
 		perp = (perp / perp_len) * half_t
 	else:
-		var fallback: Vector3 = Vector3.UP.cross(line_dir)
-		if fallback.length() < 1e-5:
-			# Edge is also vertical — pick world-right as last resort.
-			fallback = Vector3.RIGHT.cross(line_dir)
-		perp = fallback.normalized() * half_t
+		var up := Vector3.UP
+		var perp_in_plane: Vector3 = up - line_dir * up.dot(line_dir)
+		if perp_in_plane.length_squared() < 1e-10:
+			# Line itself is vertical — project world-right instead.
+			var right := Vector3.RIGHT
+			perp_in_plane = right - line_dir * right.dot(line_dir)
+		perp = perp_in_plane.normalized() * half_t
 
 	# Two triangles forming the quad. Winding is irrelevant since we render
 	# with an unshaded material (no cull_back relevance) — but we keep both
