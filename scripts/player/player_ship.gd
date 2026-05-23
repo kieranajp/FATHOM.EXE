@@ -190,14 +190,17 @@ static func _compute_aim_yaw_delta(mouse_dx: float, rate: float) -> float:
 	return -mouse_dx * rate
 
 
-# Aim-side selection from camera yaw offset. Mirrors JS game.js:458 —
-# `aimSide = mouse.yaw >= 0 ? 'starboard' : 'port'` where `mouse.yaw` is the
-# accumulated LMB-drag yaw on the orbit camera, not the cursor X. Static so the
-# unit test can pin the truth table without a scene tree.
+# Aim-side selection from camera yaw offset. The JS-derived rule is "fire AWAY
+# from the camera" — the camera sees the ship's near flank, so we fire from the
+# opposite (far) flank where targets are visible past the hull. In Godot's
+# right-handed frame (+X right, -Z forward), a positive `_drag_offset_yaw` on
+# ChaseCamera orbits the camera to the ship's STARBOARD side (camera at +X),
+# so the firing flank is PORT. Negative offset → camera on port → fire starboard.
 #
-# >= 0 (not just > 0) so a freshly-zeroed camera defaults to starboard, matching JS.
+# Static so the unit test can pin the truth table without a scene tree.
+# >= 0 (not just > 0) so a freshly-zeroed camera picks a deterministic side.
 static func _aim_side_from_camera_yaw(camera_yaw_offset: float) -> String:
-	return "starboard" if camera_yaw_offset >= 0.0 else "port"
+	return "port" if camera_yaw_offset >= 0.0 else "starboard"
 
 
 # Resolves the ChaseCamera reference. Prefers the explicit NodePath; falls
@@ -242,16 +245,16 @@ func _tick_input(delta: float) -> void:
 		var center_ease: float = 1.0 - exp(-tuning.rudder_center_rate * delta)
 		rudder = lerpf(rudder, 0.0, center_ease)
 
-	# Aim mode flag. Camera does the actual flank-yaw freeze; firing reads it
-	# via _unhandled_input's LMB branch. RMB-hold is the primary input; Space
-	# is kept as a keyboard alternative for trackpad/keyboard-only players.
+	# Aim mode flag. Camera does NOT reposition in aim mode — it stays where the
+	# user dragged it. RMB-hold is the primary input; Space is kept as a
+	# keyboard alternative for trackpad/keyboard-only players.
 	var was_aim := aim_mode
 	aim_mode = _compute_aim_mode(_right_mouse_held, Input.is_action_pressed("aim"))
 	if aim_mode and not was_aim:
 		# Lock the active flank based on the ChaseCamera's accumulated drag yaw
-		# offset — matches JS game.js:458 (`mouse.yaw >= 0 ? starboard : port`).
-		# Previous logic read `last_mouse_x_norm` (the bare cursor position),
-		# which defaulted to 0 → always-starboard when the cursor hadn't moved.
+		# offset. Rule: "fire AWAY from camera" — the camera sees the near
+		# flank, so we fire from the far flank where targets are visible past
+		# the hull. See _aim_side_from_camera_yaw for the sign-mapping comment.
 		var camera := _get_chase_camera()
 		var camera_yaw: float = camera.get_drag_yaw_offset() if camera != null else 0.0
 		aim_side = _aim_side_from_camera_yaw(camera_yaw)
