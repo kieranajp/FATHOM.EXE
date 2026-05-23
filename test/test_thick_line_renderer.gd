@@ -89,12 +89,14 @@ func test_multiple_edges_emit_proportional_vertices() -> void:
 
 func test_collinear_view_and_line_uses_fallback_perpendicular() -> void:
 	# Camera lies on the line itself — view_dir is parallel to line_dir so the
-	# view×line perpendicular collapses to zero. Round-4 fix: instead of
-	# skipping the quad (which made port outer-rings disappear at the horizon),
-	# fall back to a world-up-based perpendicular so the edge stays visible.
+	# view×line perpendicular collapses to zero. Round-4 fell back to UP×line
+	# which produced a HORIZONTAL perpendicular for horizontal lines (the quad
+	# went edge-on to a chase cam and disappeared); round-5 projects world-up
+	# onto the line's perpendicular plane so the quad stands VERTICALLY for a
+	# horizontal line and stays visible from a horizontal viewpoint.
 	#
-	# Pin the new contract: the quad still emits its six vertices and the
-	# ribbon width matches the requested thickness.
+	# Pin: quad still emits its six vertices, ribbon width matches thickness,
+	# and (the new contract) the perpendicular axis is VERTICAL — y-dominant.
 	var mesh := _make_mesh()
 	var verts := PackedVector3Array([Vector3.ZERO, Vector3(1, 0, 0)])
 	var edges := PackedInt32Array([0, 1])
@@ -102,17 +104,38 @@ func test_collinear_view_and_line_uses_fallback_perpendicular() -> void:
 	ThickLineRenderer.rebuild(mesh, verts, edges, Vector3(5, 0, 0), 0.1, null)
 	var out := _surface_verts(mesh)
 	assert_eq(out.size(), 6, "Collinear camera-and-line should fall back, not skip")
-	# Fallback uses world-up × line. For an X-axis line that's UP × X = -Z, so
-	# the +perp / -perp offsets sit at ±Z relative to the segment endpoints.
-	# Ribbon width = thickness regardless of orientation.
 	var width := out[0].distance_to(out[1])
 	assert_almost_eq(width, 0.1, 1e-5, "Fallback ribbon width still matches thickness")
+	# Perp should be vertical: out[0]=(a+perp), out[1]=(a-perp) → their offset
+	# along Y dominates X and Z.
+	var perp_offset: Vector3 = out[0] - out[1]
+	assert_gt(abs(perp_offset.y), abs(perp_offset.x), "Fallback perp is vertical (y > x)")
+	assert_gt(abs(perp_offset.y), abs(perp_offset.z), "Fallback perp is vertical (y > z)")
+
+
+func test_horizontal_line_toward_camera_emits_vertical_perp() -> void:
+	# The bug round-5 fixes: a horizontal outer-ring edge of an island pointing
+	# along the camera's view axis. Round-4 fallback (UP×line) would emit a
+	# HORIZONTAL perpendicular, giving a horizontal quad that's invisible from
+	# a horizontal chase cam. Round-5 must emit a VERTICAL perpendicular.
+	var mesh := _make_mesh()
+	# Line along +X, sitting on the sea surface.
+	var verts := PackedVector3Array([Vector3.ZERO, Vector3(2, 0, 0)])
+	var edges := PackedInt32Array([0, 1])
+	# Camera further along +X axis, also at sea level — looking down the line.
+	ThickLineRenderer.rebuild(mesh, verts, edges, Vector3(50, 0, 0), 0.1, null)
+	var out := _surface_verts(mesh)
+	assert_eq(out.size(), 6, "Edge still emits a quad after fallback")
+	var perp_offset: Vector3 = out[0] - out[1]
+	assert_gt(abs(perp_offset.y), abs(perp_offset.x), "Perp is vertical (y>x)")
+	assert_gt(abs(perp_offset.y), abs(perp_offset.z), "Perp is vertical (y>z)")
 
 
 func test_vertical_collinear_uses_world_right_fallback() -> void:
-	# Edge cases: a vertical edge viewed along its own axis. Both view×line AND
-	# UP×line collapse (UP is parallel to the line), so the renderer must drop
-	# through to the world-right fallback. Pin "still emits something".
+	# A vertical edge viewed along its own axis. view×line = 0, and the
+	# round-5 UP-projection also collapses (UP is parallel to line), so the
+	# renderer must drop through to the world-right projection as last resort.
+	# Pin "emits a quad" and "perp is horizontal".
 	var mesh := _make_mesh()
 	var verts := PackedVector3Array([Vector3.ZERO, Vector3(0, 1, 0)])
 	var edges := PackedInt32Array([0, 1])
@@ -120,6 +143,10 @@ func test_vertical_collinear_uses_world_right_fallback() -> void:
 	ThickLineRenderer.rebuild(mesh, verts, edges, Vector3(0, 5, 0), 0.1, null)
 	var out := _surface_verts(mesh)
 	assert_eq(out.size(), 6, "Vertical edge viewed along its length still emits a quad")
+	# Last-resort fallback uses world-right (X axis) projected onto the line-
+	# perpendicular plane. For a Y-axis line that's just X itself.
+	var perp_offset: Vector3 = out[0] - out[1]
+	assert_gt(abs(perp_offset.x), abs(perp_offset.y), "Last-resort perp is horizontal (x>y)")
 
 
 func test_thickness_scales_perp_distance() -> void:

@@ -32,6 +32,12 @@ var _ocean: Ocean
 var _lines_mesh: ImmediateMesh
 var _lines_instance: MeshInstance3D
 var _lines_material: StandardMaterial3D
+# Round-5: projectile heads render as camera-facing FILLED quads into a
+# second ImmediateMesh (PRIMITIVE_TRIANGLES). Lines and triangles can't
+# share a single surface so we keep them in parallel meshes.
+var _heads_mesh: ImmediateMesh
+var _heads_instance: MeshInstance3D
+var _heads_material: StandardMaterial3D
 
 # Crate pool. Each MeshInstance3D holds its own ImmediateMesh built once from
 # cube.tres. We add/remove from the pool as crates appear/disappear in
@@ -61,6 +67,18 @@ func _ready() -> void:
 	_lines_instance.extra_cull_margin = CULL_MARGIN
 	add_child(_lines_instance)
 
+	# Heads mesh — solid filled billboarded quads at projectile heads. Shares
+	# the same unshaded + per-vertex-colour approach as the lines mesh so the
+	# bloom chain picks up bright projectile colours the same way.
+	_heads_material = _build_lines_material()
+	_heads_mesh = ImmediateMesh.new()
+	_heads_instance = MeshInstance3D.new()
+	_heads_instance.name = "CombatHeads"
+	_heads_instance.mesh = _heads_mesh
+	_heads_instance.material_override = _heads_material
+	_heads_instance.extra_cull_margin = CULL_MARGIN
+	add_child(_heads_instance)
+
 	# Pre-load the cube model — duplicated per-crate so we can tint individual
 	# instances if a future ticket wants damaged-vs-fresh crates.
 	_crate_model = load("res://data/models/cube.tres") as LineModel
@@ -73,6 +91,7 @@ func _process(_delta: float) -> void:
 	if tuning == null:
 		return
 	_rebuild_lines()
+	_rebuild_heads()
 	_sync_crates()
 
 
@@ -130,6 +149,76 @@ func _rebuild_lines() -> void:
 	_lines_mesh.surface_end()
 
 
+# Solid camera-facing quads for ball/grape projectile heads. Two triangles
+# per projectile (PRIMITIVE_TRIANGLES). Chain shot is intentionally NOT
+# included — it has its own paired-dot whirl in _emit_chain.
+#
+# Camera is resolved via the active viewport. Headless tests don't have one,
+# so we skip emission entirely — the trail (lines) is still produced and the
+# test contract (gte 10 verts in the lines surface) still holds.
+func _rebuild_heads() -> void:
+	_heads_mesh.clear_surfaces()
+	if World.projectiles.is_empty():
+		return
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var cam := vp.get_camera_3d()
+	if cam == null:
+		return
+	# Count emit-eligible projectiles before opening a surface to avoid an
+	# empty surface_end (engine warns loudly).
+	var any_quad := false
+	for p in World.projectiles:
+		if String(p.get("type", "ball")) != "chain":
+			any_quad = true
+			break
+	if not any_quad:
+		return
+
+	# Camera-space right/up — flatten via global_transform.basis so the quad
+	# always faces the camera regardless of pitch/yaw.
+	var cam_basis: Basis = cam.global_transform.basis
+	var cam_right: Vector3 = cam_basis.x
+	var cam_up: Vector3 = cam_basis.y
+
+	_heads_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	for p in World.projectiles:
+		var t: String = String(p.get("type", "ball"))
+		if t == "chain":
+			continue
+		_emit_head_quad(p, t, cam_right, cam_up)
+	_heads_mesh.surface_end()
+
+
+func _emit_head_quad(p: Dictionary, t: String, cam_right: Vector3, cam_up: Vector3) -> void:
+	var col: Color
+	var half: float
+	if t == "grape":
+		col = GRAPE_COLOR
+		half = tuning.projectile_grape_size
+	else:
+		col = _color_for_projectile(p)
+		half = tuning.projectile_ball_size
+	var head_color: Color = col * tuning.projectile_emission_energy
+	head_color.a = 1.0
+	var centre := Vector3(float(p.x), float(p.y), float(p.z))
+	var r: Vector3 = cam_right * half
+	var u: Vector3 = cam_up * half
+	# Quad corners. Two triangles, six verts. Winding doesn't matter (unshaded).
+	var v0: Vector3 = centre - r - u
+	var v1: Vector3 = centre + r - u
+	var v2: Vector3 = centre + r + u
+	var v3: Vector3 = centre - r + u
+	_heads_mesh.surface_set_color(head_color)
+	_heads_mesh.surface_add_vertex(v0)
+	_heads_mesh.surface_add_vertex(v1)
+	_heads_mesh.surface_add_vertex(v2)
+	_heads_mesh.surface_add_vertex(v0)
+	_heads_mesh.surface_add_vertex(v2)
+	_heads_mesh.surface_add_vertex(v3)
+
+
 # --- Projectiles ---
 func _emit_projectiles() -> void:
 	for p in World.projectiles:
@@ -147,9 +236,9 @@ func _emit_projectiles() -> void:
 # from the JS for clarity (player cyan, pirate red, authority blue) and keep
 # grape's pellet yellow since the cluster is the dead-giveaway.
 #
-# The visual is a small "+" marker (two crossed line segments) at the head, plus
-# a fading trail behind it. The cross makes the projectile readable at range
-# even when the trail length is dwarfed by camera distance.
+# Only the fading TRAIL is emitted into the lines mesh here. The bright head
+# itself is a solid camera-facing quad emitted in _rebuild_heads — that needs
+# a triangles surface, which can't live on the same ImmediateMesh.
 func _emit_ball_or_grape(p: Dictionary, t: String) -> void:
 	var col: Color
 	if t == "grape":
@@ -172,25 +261,6 @@ func _emit_ball_or_grape(p: Dictionary, t: String) -> void:
 	_lines_mesh.surface_add_vertex(Vector3(px, py, pz))
 	_lines_mesh.surface_set_color(tail_color)
 	_lines_mesh.surface_add_vertex(Vector3(tx, ty, tz))
-
-	# Crosshair at the head — three orthogonal ticks so the projectile reads as
-	# a glowing volumetric point at range, not a flat plus that disappears when
-	# viewed edge-on. The tick size scales with projectile_head_size — round-4
-	# playtest had this at 0.25m (invisibly tiny at mid-flight); 0.6m reads
-	# properly against the bloom on 4K. Grape pellets dodge this by hitting
-	# the inner branch above with type=="grape" — kept tuned to a smaller cluster
-	# read, see _emit_grape_pellet below if reintroduced later.
-	var head_tick: float = tuning.projectile_head_size
-	_lines_mesh.surface_set_color(head_color)
-	_lines_mesh.surface_add_vertex(Vector3(px - head_tick, py, pz))
-	_lines_mesh.surface_add_vertex(Vector3(px + head_tick, py, pz))
-	_lines_mesh.surface_add_vertex(Vector3(px, py - head_tick, pz))
-	_lines_mesh.surface_add_vertex(Vector3(px, py + head_tick, pz))
-	# Z-arm too — the JS canvas renderer drew a screen-space dot; with three
-	# axis-aligned arms we approximate a "bright point" silhouette regardless
-	# of viewing angle.
-	_lines_mesh.surface_add_vertex(Vector3(px, py, pz - head_tick))
-	_lines_mesh.surface_add_vertex(Vector3(px, py, pz + head_tick))
 
 
 # Chain shot: two yellow dots whirling around the projectile centre, joined by
