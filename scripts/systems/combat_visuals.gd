@@ -173,15 +173,24 @@ func _emit_ball_or_grape(p: Dictionary, t: String) -> void:
 	_lines_mesh.surface_set_color(tail_color)
 	_lines_mesh.surface_add_vertex(Vector3(tx, ty, tz))
 
-	# Crosshair at the head — two short axis-aligned ticks so the projectile
-	# reads as a glowing point at range. The tick size is small (0.25m) so it
-	# doesn't dominate when seen close.
-	const HEAD_TICK: float = 0.25
+	# Crosshair at the head — three orthogonal ticks so the projectile reads as
+	# a glowing volumetric point at range, not a flat plus that disappears when
+	# viewed edge-on. The tick size scales with projectile_head_size — round-4
+	# playtest had this at 0.25m (invisibly tiny at mid-flight); 0.6m reads
+	# properly against the bloom on 4K. Grape pellets dodge this by hitting
+	# the inner branch above with type=="grape" — kept tuned to a smaller cluster
+	# read, see _emit_grape_pellet below if reintroduced later.
+	var head_tick: float = tuning.projectile_head_size
 	_lines_mesh.surface_set_color(head_color)
-	_lines_mesh.surface_add_vertex(Vector3(px - HEAD_TICK, py, pz))
-	_lines_mesh.surface_add_vertex(Vector3(px + HEAD_TICK, py, pz))
-	_lines_mesh.surface_add_vertex(Vector3(px, py - HEAD_TICK, pz))
-	_lines_mesh.surface_add_vertex(Vector3(px, py + HEAD_TICK, pz))
+	_lines_mesh.surface_add_vertex(Vector3(px - head_tick, py, pz))
+	_lines_mesh.surface_add_vertex(Vector3(px + head_tick, py, pz))
+	_lines_mesh.surface_add_vertex(Vector3(px, py - head_tick, pz))
+	_lines_mesh.surface_add_vertex(Vector3(px, py + head_tick, pz))
+	# Z-arm too — the JS canvas renderer drew a screen-space dot; with three
+	# axis-aligned arms we approximate a "bright point" silhouette regardless
+	# of viewing angle.
+	_lines_mesh.surface_add_vertex(Vector3(px, py, pz - head_tick))
+	_lines_mesh.surface_add_vertex(Vector3(px, py, pz + head_tick))
 
 
 # Chain shot: two yellow dots whirling around the projectile centre, joined by
@@ -203,8 +212,10 @@ func _emit_chain(p: Dictionary) -> void:
 	_lines_mesh.surface_add_vertex(p1)
 	_lines_mesh.surface_add_vertex(p2)
 	# Short marker line on each end (so each dot reads as a chunky point even at
-	# range; without it the two endpoints disappear into the connection).
-	var tick: float = 0.15
+	# range; without it the two endpoints disappear into the connection). Scaled
+	# proportionally with projectile_head_size so chain reads at the same visual
+	# weight as ball/grape after the round-4 bump.
+	var tick: float = tuning.projectile_head_size * 0.6
 	_lines_mesh.surface_add_vertex(p1 + Vector3(tick, 0, 0))
 	_lines_mesh.surface_add_vertex(p1 - Vector3(tick, 0, 0))
 	_lines_mesh.surface_add_vertex(p2 + Vector3(tick, 0, 0))

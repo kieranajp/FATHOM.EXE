@@ -1,8 +1,10 @@
 # AimOverlay — 3D trajectory + reticle drawn while aim mode is active.
 #
 # Lives as a sibling under OpenSea so the WorldEnvironment glow applies. Uses
-# ImmediateMesh + PRIMITIVE_LINES per the ARCHITECTURE.md convention for
-# per-frame-regenerated geometry (same pattern as Ocean / LineModel).
+# ThickLineRenderer (billboarded view-aligned quads) — same pipeline as the
+# ship/island/lighthouse meshes — so the lines read at consistent thickness on
+# 4K. Previously emitted as PRIMITIVE_LINES which is hard-coded to 1px in
+# Vulkan and disappeared against the bloom on high-DPI displays.
 #
 # Reads World.aim_state — empty dict means hide. Player publishes the dict.
 #
@@ -13,8 +15,8 @@
 #   4. Vertical height guide from sea level to reticle
 #   5. Crosshair at the reticle
 #
-# Dashing is faked by emitting short line segments with gaps — PRIMITIVE_LINES
-# requires explicit vertex pairs.
+# Dashing is faked by emitting only the "drawn" segments as edge pairs (the
+# undrawn gap segments are simply absent from the edge list).
 class_name AimOverlay extends Node3D
 
 @export var player_path: NodePath
@@ -34,6 +36,10 @@ var _player: PlayerShip
 var _mesh_instance: MeshInstance3D
 var _mesh: ImmediateMesh
 var _material: StandardMaterial3D
+# Scratch buffers — reused per frame to avoid per-frame allocation churn.
+# Cleared at the top of every _rebuild call.
+var _verts: PackedVector3Array = PackedVector3Array()
+var _edges: PackedInt32Array = PackedInt32Array()
 
 
 func _ready() -> void:
@@ -49,6 +55,9 @@ func _ready() -> void:
 	_material.emission = OVERLAY_COLOR
 	_material.emission_energy_multiplier = 1.5
 	_material.disable_fog = true
+	# Disable backface culling so the billboarded thick-line quads render from
+	# either side regardless of camera orbit (same as LineModel._build_material).
+	_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	_mesh = ImmediateMesh.new()
 	_mesh_instance = MeshInstance3D.new()
@@ -69,7 +78,12 @@ func _process(_delta: float) -> void:
 	_rebuild(aim)
 
 
+# Public-but-underscored entry — exercised by test_aim_overlay.gd. Synthetic aim
+# state is fed in and the resulting (_verts, _edges) buffers are inspected.
 func _rebuild(aim: Dictionary) -> void:
+	_verts.clear()
+	_edges.clear()
+
 	var side: String = String(aim.get("side", "starboard"))
 	var fire_yaw: float = _player.yaw - PI / 2.0 if side == "port" else _player.yaw + PI / 2.0
 	var hr: float = _player.ship_class.hit_radius if _player.ship_class != null else 3.0
@@ -81,10 +95,7 @@ func _rebuild(aim: Dictionary) -> void:
 	)
 	var reticle: Vector3 = aim.get("reticle", Vector3.ZERO)
 
-	_mesh.clear_surfaces()
-	_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
-
-	# 1. Cone boundaries (dashed) — sea-level lines at fire_yaw ±π/4 out to max.
+	# 1. Cone boundaries (dashed) — sea-level lines at fire_yaw ±aim_yaw_max.
 	var max_range: float = tuning.aim_range_max
 	var left_end := Vector3(
 		_player.global_position.x + sin(fire_yaw - tuning.aim_yaw_max) * max_range,
@@ -116,12 +127,43 @@ func _rebuild(aim: Dictionary) -> void:
 		HEIGHT_DASH_LEN, HEIGHT_DASH_GAP,
 	)
 
-	# 5. Crosshair: four short arms through the reticle along world axes.
+	# 5. Crosshair: short axis-aligned arms through the reticle.
 	_emit_crosshair(reticle)
 
-	_mesh.surface_end()
+	# Hand off to ThickLineRenderer. Camera resolves via viewport; in headless
+	# tests get_camera_3d() returns null — in that case we still want the buffers
+	# populated (for assertion) but skip the actual triangle emission.
+	var cam := get_viewport().get_camera_3d() if get_viewport() != null else null
+	if cam == null:
+		_mesh.clear_surfaces()
+		return
+	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
+	var thickness: float = 0.04
+	if render_tuning != null:
+		thickness = render_tuning.line_thickness_world
+	ThickLineRenderer.rebuild(
+		_mesh,
+		_verts,
+		_edges,
+		cam.global_position,
+		thickness,
+		_material,
+	)
 
 
+# Appends a pair of (vertex, vertex) edge endpoints into the scratch buffers,
+# returning the resulting edge pair indices for the curious. Helper so the
+# emitters below stay readable.
+func _push_edge(a: Vector3, b: Vector3) -> void:
+	var i0: int = _verts.size()
+	_verts.append(a)
+	_verts.append(b)
+	_edges.append(i0)
+	_edges.append(i0 + 1)
+
+
+# Dashed line — emits the "drawn" segments only; gaps are simply absent from
+# the edge list. Matches the original PRIMITIVE_LINES emission pattern.
 func _emit_dashed_line(a: Vector3, b: Vector3, dash_len: float, gap_len: float) -> void:
 	var dir: Vector3 = b - a
 	var total: float = dir.length()
@@ -131,14 +173,14 @@ func _emit_dashed_line(a: Vector3, b: Vector3, dash_len: float, gap_len: float) 
 	var t: float = 0.0
 	while t < total:
 		var t_end: float = minf(total, t + dash_len)
-		_mesh.surface_add_vertex(a + dir * t)
-		_mesh.surface_add_vertex(a + dir * t_end)
+		_push_edge(a + dir * t, a + dir * t_end)
 		t = t_end + gap_len
 
 
 # Emits a parabolic curve from `start` to `target` modelling the same vy
-# ballistic solution Combat uses. Skipping the muzzle velocity wash — we
-# directly recompute the segments from the analytical solution.
+# ballistic solution Combat uses. The curve is sampled at TRAJECTORY_SEGMENTS
+# points and emitted as consecutive straight segments — already thick-line-
+# friendly.
 func _emit_trajectory(start: Vector3, target: Vector3) -> void:
 	var dx: float = target.x - start.x
 	var dz: float = target.z - start.z
@@ -155,11 +197,12 @@ func _emit_trajectory(start: Vector3, target: Vector3) -> void:
 			start.y + vy_start * t - 0.5 * tuning.gravity * t * t,
 			start.z + dz * f,
 		)
-		_mesh.surface_add_vertex(prev)
-		_mesh.surface_add_vertex(curr)
+		_push_edge(prev, curr)
 		prev = curr
 
 
+# Horizontal ring as `segments` straight segments. Each segment is one edge
+# pair in the buffer — ThickLineRenderer billboards each.
 func _emit_ring(center: Vector3, radius: float, segments: int) -> void:
 	var prev := Vector3(center.x + radius, 0.0, center.z)
 	for i in range(1, segments + 1):
@@ -169,18 +212,22 @@ func _emit_ring(center: Vector3, radius: float, segments: int) -> void:
 			0.0,
 			center.z + sin(theta) * radius,
 		)
-		_mesh.surface_add_vertex(prev)
-		_mesh.surface_add_vertex(curr)
+		_push_edge(prev, curr)
 		prev = curr
 
 
+# Three orthogonal cross arms centred on `center`. Six edge pairs total — small
+# enough to enumerate inline.
 func _emit_crosshair(center: Vector3) -> void:
-	# X-axis arms.
-	_mesh.surface_add_vertex(center + Vector3(-CROSSHAIR_HALF, 0.0, 0.0))
-	_mesh.surface_add_vertex(center + Vector3(CROSSHAIR_HALF, 0.0, 0.0))
-	# Y-axis arms.
-	_mesh.surface_add_vertex(center + Vector3(0.0, -CROSSHAIR_HALF, 0.0))
-	_mesh.surface_add_vertex(center + Vector3(0.0, CROSSHAIR_HALF, 0.0))
-	# Z-axis arms.
-	_mesh.surface_add_vertex(center + Vector3(0.0, 0.0, -CROSSHAIR_HALF))
-	_mesh.surface_add_vertex(center + Vector3(0.0, 0.0, CROSSHAIR_HALF))
+	_push_edge(
+		center + Vector3(-CROSSHAIR_HALF, 0.0, 0.0),
+		center + Vector3(CROSSHAIR_HALF, 0.0, 0.0),
+	)
+	_push_edge(
+		center + Vector3(0.0, -CROSSHAIR_HALF, 0.0),
+		center + Vector3(0.0, CROSSHAIR_HALF, 0.0),
+	)
+	_push_edge(
+		center + Vector3(0.0, 0.0, -CROSSHAIR_HALF),
+		center + Vector3(0.0, 0.0, CROSSHAIR_HALF),
+	)

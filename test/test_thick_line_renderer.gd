@@ -87,17 +87,39 @@ func test_multiple_edges_emit_proportional_vertices() -> void:
 	assert_eq(out.size(), 18, "Three edges → 18 vertices")
 
 
-func test_collinear_view_and_line_skips_quad() -> void:
-	# Camera lies on the line itself — view_dir is parallel to line_dir, so
-	# the perpendicular collapses to zero. Renderer must skip rather than
-	# emit a zero-area quad (which would alias to numerical noise).
+func test_collinear_view_and_line_uses_fallback_perpendicular() -> void:
+	# Camera lies on the line itself — view_dir is parallel to line_dir so the
+	# view×line perpendicular collapses to zero. Round-4 fix: instead of
+	# skipping the quad (which made port outer-rings disappear at the horizon),
+	# fall back to a world-up-based perpendicular so the edge stays visible.
+	#
+	# Pin the new contract: the quad still emits its six vertices and the
+	# ribbon width matches the requested thickness.
 	var mesh := _make_mesh()
 	var verts := PackedVector3Array([Vector3.ZERO, Vector3(1, 0, 0)])
 	var edges := PackedInt32Array([0, 1])
-	# Camera at +X — same axis as the line. perp = X×X = 0.
+	# Camera at +X — same axis as the line. perp via view×line = 0.
 	ThickLineRenderer.rebuild(mesh, verts, edges, Vector3(5, 0, 0), 0.1, null)
 	var out := _surface_verts(mesh)
-	assert_eq(out.size(), 0, "Collinear camera-and-line should skip the quad")
+	assert_eq(out.size(), 6, "Collinear camera-and-line should fall back, not skip")
+	# Fallback uses world-up × line. For an X-axis line that's UP × X = -Z, so
+	# the +perp / -perp offsets sit at ±Z relative to the segment endpoints.
+	# Ribbon width = thickness regardless of orientation.
+	var width := out[0].distance_to(out[1])
+	assert_almost_eq(width, 0.1, 1e-5, "Fallback ribbon width still matches thickness")
+
+
+func test_vertical_collinear_uses_world_right_fallback() -> void:
+	# Edge cases: a vertical edge viewed along its own axis. Both view×line AND
+	# UP×line collapse (UP is parallel to the line), so the renderer must drop
+	# through to the world-right fallback. Pin "still emits something".
+	var mesh := _make_mesh()
+	var verts := PackedVector3Array([Vector3.ZERO, Vector3(0, 1, 0)])
+	var edges := PackedInt32Array([0, 1])
+	# Camera directly above — view_dir = UP, line_dir = UP. Both crosses zero.
+	ThickLineRenderer.rebuild(mesh, verts, edges, Vector3(0, 5, 0), 0.1, null)
+	var out := _surface_verts(mesh)
+	assert_eq(out.size(), 6, "Vertical edge viewed along its length still emits a quad")
 
 
 func test_thickness_scales_perp_distance() -> void:
