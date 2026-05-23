@@ -6,6 +6,7 @@
 script = ExtResource("1")
 wireframe_glow_intensity = 6.0
 wireframe_edge_thickness = 0.015
+line_thickness_world = 0.06
 player_ship_emission_energy = 3.0
 lighthouse_emission_energy = 2.5
 bloom_intensity = 2.8

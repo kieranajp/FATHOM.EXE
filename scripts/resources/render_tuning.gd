@@ -23,6 +23,13 @@ class_name RenderTuning extends Tuning
 @export var wireframe_glow_intensity: float = 4.0
 @export var wireframe_edge_thickness: float = 0.015
 
+# Thick-line world-space half-width fed to ThickLineRenderer. Apparent pixel
+# thickness scales with screen-space distance; ~0.04m at chase-cam distance
+# reads as roughly 2px on 4K, more on lower resolutions (which is fine —
+# they need the help less). The renderer billboards each segment so it
+# reads as a flat ribbon from any viewing angle.
+@export var line_thickness_world: float = 0.04
+
 # Per-target emission energy multipliers for LineModel materials. PRIMITIVE_LINES
 # can't change pixel thickness directly — apparent thickness is driven by bloom,
 # which is exponential past the HDR threshold. Bumping the player's multiplier
