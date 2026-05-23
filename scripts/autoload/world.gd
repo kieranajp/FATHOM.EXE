@@ -34,6 +34,13 @@ var aim_state: Dictionary = {}
 # until the active enforcer is sunk/de-aggros (combat_system flips it back).
 var enforcer_alert_active: bool = false
 
+# T42: reference to the currently-active enforcer (EnemyShip with is_enforcer).
+# Typed as Node to avoid an autoload→class dependency, same as `active_target`.
+# Set by CombatSystem.spawn_enemy when is_enforcer=true; cleared when the
+# enforcer dies (alongside `enforcer_alert_active`). Used by the retarget path
+# to switch an existing enforcer onto a new violator.
+var enforcer: Node = null
+
 
 func clear() -> void:
 	enemies.clear()
@@ -45,3 +52,4 @@ func clear() -> void:
 	active_target = null
 	aim_state = {}
 	enforcer_alert_active = false
+	enforcer = null
