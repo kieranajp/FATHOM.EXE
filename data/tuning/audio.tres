@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AudioTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/audio_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+sfx_volume_db = 0.0
+music_volume_db = 0.0
+ambient_volume_db = 0.0
+beep_volume_db = -6.0
+shoot_volume_db = -3.0
+explosion_volume_db = -3.0
+splash_volume_db = -4.0
+dock_jingle_volume_db = -3.0
+coin_volume_db = -6.0
+clink_volume_db = -4.0
+travel_sweep_volume_db = -6.0
+siren_volume_db = -6.0
+low_buzz_volume_db = -4.0
+wind_volume_db = -12.0
+waves_volume_db = -12.0
+wind_base_pitch = 1.0
