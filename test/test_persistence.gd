@@ -113,6 +113,38 @@ func test_round_trip_restores_all_fields() -> void:
 	assert_almost_eq(GameState.crew.morale, 75.0, 0.001)
 
 
+func test_round_trip_port_ammo_stock() -> void:
+	GameState.port_ammo_stock = {
+		"port_royal": {"ball": 5, "chain": 10, "grape": 15}
+	}
+	Persistence.save()
+	
+	GameState.reset_new_game()
+	assert_eq(GameState.port_ammo_stock, {} as Dictionary)
+	
+	var loaded := Persistence.load()
+	assert_true(loaded)
+	assert_almost_eq(float(GameState.port_ammo_stock["port_royal"]["ball"]), 5.0, 0.001)
+	assert_almost_eq(float(GameState.port_ammo_stock["port_royal"]["chain"]), 10.0, 0.001)
+	assert_almost_eq(float(GameState.port_ammo_stock["port_royal"]["grape"]), 15.0, 0.001)
+
+
+func test_round_trip_factions() -> void:
+	GameState.factions = {
+		"pirates": {"id": "pirates", "display_name": "Pirates", "player_reputation": -50.0}
+	}
+	Persistence.save()
+	
+	GameState.reset_new_game()
+	assert_eq(GameState.factions, {} as Dictionary)
+	
+	var loaded := Persistence.load()
+	assert_true(loaded)
+	assert_eq(GameState.factions["pirates"]["id"], "pirates")
+	assert_eq(GameState.factions["pirates"]["display_name"], "Pirates")
+	assert_almost_eq(float(GameState.factions["pirates"]["player_reputation"]), -50.0, 0.001)
+
+
 func test_corrupted_save_returns_false_and_warns() -> void:
 	_write_raw("this is not valid json {{{")
 	var loaded: bool = Persistence.load()
