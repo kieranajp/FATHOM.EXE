@@ -111,22 +111,25 @@ func _load_ship_class(class_id: String) -> ShipClass:
 	return load(path) as ShipClass
 
 
-# Visual: dinghy LineModel tinted by faction. Future tickets can swap in a
-# class-specific mesh; for parity this re-uses the player template so silhouette
-# differences come from scale + colour.
+# Visual: class-specific LineModel tinted by faction. Mirrors the player ship's
+# load path (player_ship.gd::_build_placeholder_mesh) — we resolve a per-class
+# .tres from data/models/<ship_class_id>.tres, fall back to the dinghy if it's
+# missing, then override the model colour with the faction tint.
 func _build_mesh() -> void:
-	var template := load("res://data/models/dinghy.tres") as LineModel
+	var model_path := "res://data/models/" + ship_class_id + ".tres"
+	if not ResourceLoader.exists(model_path):
+		push_warning("EnemyShip: model %s missing, falling back to dinghy" % ship_class_id)
+		model_path = "res://data/models/dinghy.tres"
+	var template := load(model_path) as LineModel
 	if template == null:
-		push_warning("EnemyShip: dinghy template failed to load")
+		push_warning("EnemyShip: model failed to load (%s)" % model_path)
 		return
 	_line_model = template.duplicate() as LineModel
 	_line_model.color = Factions.color_for(faction_id)
 
-	# Authority enforcer is a galleon — render it visibly chunkier. Pirates use
-	# the dinghy scale (1.0). The scale knob lives on build_immediate_mesh, so
-	# we just call build_mesh_instance with a non-1.0 value for the enforcer.
-	var scale: float = 1.6 if is_enforcer or ship_class_id == "galleon" else 1.0
-	var inst: MeshInstance3D = _line_model.build_mesh_instance(scale)
+	# Per-class .tres already encodes silhouette + scale; build at 1.0 so the
+	# authored coords win. Faction tint comes from the colour override above.
+	var inst: MeshInstance3D = _line_model.build_mesh_instance(1.0)
 	inst.name = "ShipVisual"
 	_mesh_instance = inst
 	add_child(inst)

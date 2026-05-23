@@ -12,6 +12,7 @@
 class_name CombatSystem extends Node
 
 @export var tuning: CombatTuning
+@export var visuals_tuning: CombatVisualsTuning
 @export var player_path: NodePath
 @export var ocean_path: NodePath
 @export var enemies_root_path: NodePath  # Node3D parent for spawned enemies; falls back to OpenSea root
@@ -25,6 +26,8 @@ var _ports_root: Node
 func _ready() -> void:
 	if tuning == null:
 		tuning = load("res://data/tuning/combat.tres") as CombatTuning
+	if visuals_tuning == null:
+		visuals_tuning = load("res://data/tuning/combat_visuals.tres") as CombatVisualsTuning
 
 	if player_path != NodePath(""):
 		_player = get_node_or_null(player_path) as PlayerShip
@@ -218,6 +221,18 @@ func _tick_debris(delta: float) -> void:
 			d.y += d.vy * delta
 			d.z += d.vz * delta
 			d.vy -= tuning.gravity * delta
+		else:
+			# Crate — drift outward on the surface, tumble slowly, ride the wave.
+			# Wave height is the single source of truth (Ocean), so we sample
+			# rather than recompute. Crates don't fall; their Y is whatever the
+			# wave puts them at this frame.
+			d.x += d.vx * delta
+			d.z += d.vz * delta
+			if _ocean != null:
+				d.y = _ocean.get_wave_height(d.x, d.z)
+			d.yaw = float(d.get("yaw", 0.0)) + float(d.get("rot_speed_yaw", 0.0)) * delta
+			d.pitch = float(d.get("pitch", 0.0)) + float(d.get("rot_speed_pitch", 0.0)) * delta
+			d.roll = float(d.get("roll", 0.0)) + float(d.get("rot_speed_roll", 0.0)) * delta
 		if d.life > 0.0:
 			keep.append(d)
 	World.debris = keep
@@ -349,7 +364,37 @@ func _begin_sink(enemy: EnemyShip, sunk_by: Node) -> void:
 		return
 	enemy.is_sinking = true
 	enemy.health = 0.0
+	_spawn_crates(enemy.global_position)
 	EventBus.ship_sunk.emit(enemy, sunk_by)
+
+
+# Floating wreckage — small wooden crates that bob on the wave surface near
+# the sinking ship. Visual concern only; CombatVisuals reads these as
+# wireframe cubes via cube.tres. Mirrors JS prototype's `world.debris` crate
+# spawn on enemy sink (game.js).
+func _spawn_crates(pos: Vector3) -> void:
+	if visuals_tuning == null:
+		return
+	for _i in visuals_tuning.crate_count_on_sink:
+		var angle: float = randf() * TAU
+		var dist: float = randf() * visuals_tuning.crate_spawn_radius
+		var outward_speed: float = visuals_tuning.crate_initial_outward_speed
+		World.debris.append({
+			"x": pos.x + sin(angle) * dist,
+			"y": pos.y,
+			"z": pos.z + cos(angle) * dist,
+			"vx": sin(angle) * outward_speed,
+			"vy": 0.0,
+			"vz": cos(angle) * outward_speed,
+			"life": visuals_tuning.crate_lifetime_seconds,
+			"yaw": randf() * TAU,
+			"pitch": randf() * TAU,
+			"roll": randf() * TAU,
+			"rot_speed_yaw": (randf() - 0.5) * 2.0 * visuals_tuning.crate_rot_speed_max,
+			"rot_speed_pitch": (randf() - 0.5) * 2.0 * visuals_tuning.crate_rot_speed_max,
+			"rot_speed_roll": (randf() - 0.5) * 2.0 * visuals_tuning.crate_rot_speed_max,
+			"is_spark": false,
+		})
 
 
 # --- Public API. ---
