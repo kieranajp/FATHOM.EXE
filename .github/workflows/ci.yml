@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - godot
+      - godot-T*
+      - godot-*
+  pull_request:
+    branches:
+      - godot
+
+jobs:
+  test:
+    name: Run GUT Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.0-beta3
+          use-dotnet: false
+
+      - name: Headless Asset Import
+        run: |
+          godot --path . --headless --import
+
+      - name: Headless Boot Check
+        run: |
+          godot --path . --headless --quit
+
+      - name: Run GUT Unit Tests
+        run: |
+          chmod +x ./run_tests.sh
+          ./run_tests.sh

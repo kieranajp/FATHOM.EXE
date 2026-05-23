@@ -83,11 +83,14 @@ If two parallel tickets need to extend the same file (e.g. both add fields to `P
 - Proposed change → comment on a tracking issue → user approves → single dedicated PR that updates only the doc → all open ticket branches rebase.
 - Never sneak a contract change into a feature PR.
 
-## CI / quality bars (future)
+## CI / quality bars
 
-Not in place yet. When set up, expect:
-- Headless boot check
+GitHub Actions CI is configured and runs automatically on pushes to `godot*` branches and pull requests targeting `godot`. The CI workflow:
+- Performs a headless asset import (`godot --path . --headless --import`)
+- Performs a headless boot check (`godot --path . --headless --quit`)
+- Runs the full GUT unit test suite via `./run_tests.sh`
+
+Future quality gates to expect:
 - gdformat / static check
 - Smoke run that loads each scene root once
 
-Until then, manual smoke run per PR.
