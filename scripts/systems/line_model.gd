@@ -122,6 +122,11 @@ func build_mesh_instance(scale: float = 1.0, emission_energy: float = 1.5) -> Me
 # `thickness` is world-space metres of full ribbon width. ~0.04m at chase-cam
 # range reads as roughly 2px on 4K; see RenderTuning.line_thickness_world.
 #
+# `reference_distance` enables distance-linear thickness scaling — edges
+# beyond this distance get proportionally fatter so they stay visible at
+# range. Zero disables. Islands sit ~540m from the player ship while ships
+# are ~15m away, so the chase cam needs the scaling to see distant bases.
+#
 # Returns the ThickLineMesh node (a MeshInstance3D subclass) so callers that
 # need to drive deformations (sails) can set `open_factor` directly. Static
 # models can ignore the field — it defaults to 1.0.
@@ -129,11 +134,13 @@ func build_thick_mesh_instance(
 	scale: float = 1.0,
 	thickness: float = 0.04,
 	emission_energy: float = 1.5,
+	reference_distance: float = 0.0,
 ) -> ThickLineMesh:
 	var inst := ThickLineMesh.new()
 	inst.model = self
 	inst.thickness = thickness
 	inst.scale_factor = scale
+	inst.reference_distance = reference_distance
 	inst.material_override = _build_material(emission_energy)
 	return inst
 

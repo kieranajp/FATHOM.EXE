@@ -30,6 +30,15 @@ class_name RenderTuning extends Tuning
 # reads as a flat ribbon from any viewing angle.
 @export var line_thickness_world: float = 0.04
 
+# Distance at which `line_thickness_world` is the authored ribbon width.
+# Beyond this, ThickLineRenderer scales the world-space thickness linearly so
+# the ribbon stays roughly the same on-screen pixel-width regardless of the
+# segment's distance to the camera. The chase cam orbits ~15m from the player
+# ship, so 15m makes the player + nearby enemies look exactly as authored
+# while distant islands (~540m) get ~36× fatter ribbons to remain visible
+# instead of subtending <0.1px.
+@export var line_thickness_reference_distance: float = 15.0
+
 # Per-target emission energy multipliers for LineModel materials. PRIMITIVE_LINES
 # can't change pixel thickness directly — apparent thickness is driven by bloom,
 # which is exponential past the HDR threshold. Bumping the player's multiplier

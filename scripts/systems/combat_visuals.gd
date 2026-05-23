@@ -138,16 +138,22 @@ func _build_crate_material() -> StandardMaterial3D:
 # in between — same idiom as Ocean / AimOverlay.
 func _rebuild_lines() -> void:
 	_lines_mesh.clear_surfaces()
-	# Bail if there's no line geometry to emit. Crates are handled separately,
-	# so a World with only crates (no projectiles/splashes/sparks) must NOT
-	# call surface_begin — an empty surface_end triggers a vertices.is_empty()
-	# engine warning.
+	# Bail if there's no line geometry to emit. Round-7: ball/grape projectiles
+	# no longer emit a trail (matches JS — projectiles are single rects, only
+	# sparks get the `* 0.04` motion trail). The lines surface only carries
+	# chain-shot whirl, splash rings, and spark trails now — so we need a
+	# chain projectile, a splash, or a spark to open a surface.
+	var has_chain := false
+	for p in World.projectiles:
+		if String(p.get("type", "ball")) == "chain":
+			has_chain = true
+			break
 	var has_sparks := false
 	for d in World.debris:
 		if bool(d.get("is_spark", false)):
 			has_sparks = true
 			break
-	if World.projectiles.is_empty() and World.splashes.is_empty() and not has_sparks:
+	if not has_chain and World.splashes.is_empty() and not has_sparks:
 		return
 
 	_lines_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
@@ -248,37 +254,21 @@ func _emit_projectiles() -> void:
 				_emit_ball_or_grape(p, t)
 
 
-# Ball or grape: short trail segment along velocity, faction-tinted (grape gets
-# a JS-yellow override). Per JS reference, all three ammo types render in the
-# same yellow palette — but the issue asks for faction tinting, so we deviate
-# from the JS for clarity (player cyan, pirate red, authority blue) and keep
-# grape's pellet yellow since the cluster is the dead-giveaway.
+# Ball or grape: nothing emitted into the lines mesh. JS renders these as a
+# single small filled rect at the projectile centre — no velocity trail. The
+# trail-painting code that lived here in rounds 1-6 was a misread of JS: the
+# `* 0.04` factor at game.js:3384 is the SPARK (debris) trail, not the
+# projectile. With v=28 m/s the misplaced trail painted a 1.12m streak behind
+# every cannonball, which (combined with the bright head quad) made the
+# projectile read as having "too much range" — the visible streak ran further
+# than the actual ballistic flight.
 #
-# Only the fading TRAIL is emitted into the lines mesh here. The bright head
-# itself is a solid camera-facing quad emitted in _rebuild_heads — that needs
-# a triangles surface, which can't live on the same ImmediateMesh.
-func _emit_ball_or_grape(p: Dictionary, t: String) -> void:
-	var col: Color
-	if t == "grape":
-		col = GRAPE_COLOR
-	else:
-		col = _color_for_projectile(p)
-	var px: float = float(p.x)
-	var py: float = float(p.y)
-	var pz: float = float(p.z)
-	var head_color: Color = col * tuning.projectile_emission_energy
-	head_color.a = 1.0
-
-	# Trail behind the projectile. Fades alpha to zero at the tail end.
-	var tx: float = px - float(p.vx) * tuning.projectile_trail_factor
-	var ty: float = py - float(p.vy) * tuning.projectile_trail_factor
-	var tz: float = pz - float(p.vz) * tuning.projectile_trail_factor
-	var tail_color: Color = head_color
-	tail_color.a = 0.0
-	_lines_mesh.surface_set_color(head_color)
-	_lines_mesh.surface_add_vertex(Vector3(px, py, pz))
-	_lines_mesh.surface_set_color(tail_color)
-	_lines_mesh.surface_add_vertex(Vector3(tx, ty, tz))
+# The bright head itself is a solid camera-facing quad emitted in
+# _rebuild_heads. Kept this function as a stub so the dispatch in
+# _emit_projectiles stays readable (and so a future ticket that wants a
+# real motion-blur fade has an obvious place to put it).
+func _emit_ball_or_grape(_p: Dictionary, _t: String) -> void:
+	pass
 
 
 # Chain shot: two yellow dots whirling around the projectile centre, joined by

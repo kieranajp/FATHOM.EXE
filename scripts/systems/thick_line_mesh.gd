@@ -26,6 +26,11 @@ var scale_factor: float = 1.0
 # (PlayerShip) each frame. Static models (lighthouse, island, beam) leave it
 # at 1.0 and the deformation loop becomes a no-op.
 var open_factor: float = 1.0
+# Distance-linear thickness scaling. Edges further than this from the camera
+# get fatter so they stay visible at chase-cam range (islands ~540m away vs.
+# ships ~15m away). Zero disables the scaling — keep the authored thickness
+# everywhere. See ThickLineRenderer.rebuild docstring.
+var reference_distance: float = 0.0
 
 # Held so we don't reallocate per frame. material_override sits on the node
 # itself (set up at construction time).
@@ -63,6 +68,7 @@ func _process(_delta: float) -> void:
 		cam_local,
 		thickness,
 		material_override,
+		reference_distance,
 	)
 
 

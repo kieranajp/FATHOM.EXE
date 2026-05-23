@@ -63,14 +63,15 @@ func test_projectiles_produce_geometry() -> void:
 	]
 	_visuals._process(0.016)
 	var mesh: ImmediateMesh = _visuals._lines_mesh
-	assert_eq(mesh.get_surface_count(), 1, "Projectiles emit a single surface")
+	assert_eq(mesh.get_surface_count(), 1, "Chain projectile alone emits a single surface")
 	var arrays := mesh.surface_get_arrays(0)
 	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	# Round-5: ball/grape emit only the trail into the lines mesh (2 verts each);
-	# the solid head quad lives on the separate _heads_mesh. Chain still emits
-	# its whirling segments here (8 verts: 1 connecting line + 2 ticks × 2 ends).
-	# 2 + 8 + 2 = 12 min. Loose `gte` so future visual tweaks don't break this.
-	assert_gte(verts.size(), 10, "All three projectile types emit geometry")
+	# Round-7: ball/grape no longer emit any trail into the lines mesh (JS
+	# parity — only sparks get the `* 0.04` trail). The chain projectile is the
+	# only thing on the lines surface here: 1 connecting line (2 verts) + 2
+	# tick markers (4 verts) = 6 verts. Loose `gte` so future visual tweaks
+	# don't break this.
+	assert_gte(verts.size(), 6, "Chain projectile emits whirl + tick geometry")
 
 
 func test_ball_and_grape_emit_solid_head_quads() -> void:

@@ -27,13 +27,18 @@ static func build(port_def: PortDef) -> Node3D:
 
 	# All meshes use ThickLineMesh for resolution-independent line width.
 	# See RenderTuning.line_thickness_world. Lighthouse + island also bump
-	# emission to read crisply at distance.
+	# emission to read crisply at distance, and use distance-linear thickness
+	# scaling so the ribbon stays visible at the ~540m chase-cam range to a
+	# distant island. Without scaling the authored 0.06m ribbon subtends
+	# ~0.1px at that distance and effectively vanishes.
 	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
 	var lh_emission: float = 1.5
 	var thickness: float = 0.04
+	var ref_dist: float = 0.0
 	if render_tuning != null:
 		lh_emission = render_tuning.lighthouse_emission_energy
 		thickness = render_tuning.line_thickness_world
+		ref_dist = render_tuning.line_thickness_reference_distance
 
 	# Island: procedural topographic LineModel. Seed deterministically off the
 	# port id so the same port reads the same silhouette every session — same
@@ -41,7 +46,7 @@ static func build(port_def: PortDef) -> Node3D:
 	var island_seed: int = _port_id_seed(port_def.id)
 	var island_model := IslandGenerator.generate(island_seed, port_def.size, port_def.height)
 	island_model.color = port_def.color
-	var island := island_model.build_thick_mesh_instance(1.0, thickness)
+	var island := island_model.build_thick_mesh_instance(1.0, thickness, 1.5, ref_dist)
 	island.name = "Island"
 	root.add_child(island)
 
@@ -52,7 +57,7 @@ static func build(port_def: PortDef) -> Node3D:
 	lh_root.position = Vector3(0.0, port_def.height, 0.0)
 	root.add_child(lh_root)
 
-	var lh_mesh := LIGHTHOUSE_MODEL.build_thick_mesh_instance(1.0, thickness, lh_emission)
+	var lh_mesh := LIGHTHOUSE_MODEL.build_thick_mesh_instance(1.0, thickness, lh_emission, ref_dist)
 	lh_mesh.name = "Tower"
 	lh_root.add_child(lh_mesh)
 
@@ -73,7 +78,7 @@ static func build(port_def: PortDef) -> Node3D:
 		[Vector3.ZERO, Vector3(0.0, 0.0, -8.0)]
 	)
 	beam_model.edges = PackedInt32Array([0, 1])
-	var beam := beam_model.build_thick_mesh_instance(1.0, thickness)
+	var beam := beam_model.build_thick_mesh_instance(1.0, thickness, 1.5, ref_dist)
 	beam.name = "Beam"
 	beacon.add_child(beam)
 

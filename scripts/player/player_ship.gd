@@ -516,10 +516,16 @@ func _build_placeholder_mesh() -> void:
 	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
 	var emission_energy: float = 1.5
 	var thickness: float = 0.04
+	var ref_dist: float = 0.0
 	if render_tuning != null:
 		emission_energy = render_tuning.player_ship_emission_energy
 		thickness = render_tuning.line_thickness_world
-	var inst := model.build_thick_mesh_instance(1.0, thickness, emission_energy)
+		ref_dist = render_tuning.line_thickness_reference_distance
+	# Distance-linear scaling kicks in BEYOND `ref_dist`; clamps to 1× at
+	# closer ranges. The player ship is anchored to the chase cam so the
+	# clamp keeps it at the authored width — no visual change for the rig
+	# we look at all the time, only for things on the far horizon.
+	var inst := model.build_thick_mesh_instance(1.0, thickness, emission_energy, ref_dist)
 	inst.name = "ShipVisual"
 	_mesh_instance = inst
 	# Hold refs so _tick_sail_deformation can push open_factor each frame.
