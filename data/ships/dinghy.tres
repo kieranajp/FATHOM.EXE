@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ShipClass" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ship_class.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dinghy"
+display_name = "Dinghy"
+cost = 0
+max_health = 100.0
+base_max_speed = 6.5
+max_cargo = 100
+firepower = 1
+hit_radius = 4.0
+hit_height = 6.0
