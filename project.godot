@@ -25,6 +25,7 @@ WindSystem="*res://scripts/autoload/wind_system.gd"
 TimeSystem="*res://scripts/autoload/time_system.gd"
 AudioBus="*res://scripts/autoload/audio_bus.gd"
 Persistence="*res://scripts/autoload/persistence.gd"
+Tunings="*res://scripts/autoload/tunings.gd"
 
 [editor_plugins]
 

@@ -31,8 +31,8 @@ var _in_world_minutes: int = 0
 
 
 func _ready() -> void:
-	tuning = load("res://data/tuning/time.tres") as TimeTuning
-	travel_tuning = load("res://data/tuning/travel.tres") as TravelTuning
+	tuning = Tunings.time
+	travel_tuning = Tunings.travel
 
 	# Initialise docked state based on whether player starts in a port
 	_is_docked = GameState.current_port_id != ""

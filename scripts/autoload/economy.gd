@@ -13,7 +13,7 @@
 extends Node
 
 const SHIPS_DIR := "res://data/ships/"
-const TUNING_PATH := "res://data/tuning/economy.tres"
+
 
 const COMMODITY_DIR := "res://data/commodities/"
 const AMMO_ITEMS: Array[String] = ["ball", "chain", "grape"]
@@ -24,9 +24,8 @@ var _base_prices: Dictionary = {}
 
 func _ready() -> void:
 	_load_base_prices()
-	if ResourceLoader.exists(TUNING_PATH):
-		_tuning = load(TUNING_PATH) as EconomyTuning
-	else:
+	_tuning = Tunings.economy
+	if not _tuning:
 		_tuning = EconomyTuning.new()
 
 
@@ -185,14 +184,14 @@ func can_sell_cargo(ship: PlayerState, item: String) -> Dictionary:
 func can_upgrade_ship(ship: PlayerState, target_class_id: String) -> Dictionary:
 	if ship == null:
 		return { "success": false, "reason": "NO PLAYER STATE" }
-	var target := _load_ship_class(target_class_id)
+	var target := ShipClass.load_or_null(target_class_id)
 	if target == null:
 		return { "success": false, "reason": "INVALID SHIP CLASS" }
 	if ship.ship_class_id == target_class_id:
 		return { "success": false, "reason": "ALREADY OWNED" }
-	var current := _load_ship_class(ship.ship_class_id)
+	var current := ShipClass.load_or_default(ship.ship_class_id)
 	if current == null:
-		current = _load_ship_class("dinghy")
+		current = ShipClass.load_or_default("dinghy")
 	var current_cost: int = current.cost if current != null else 0
 	var current_max_hp: float = current.max_health if current != null else 100.0
 	var health_ratio: float = 1.0
