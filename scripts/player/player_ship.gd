@@ -257,49 +257,41 @@ func _load_ship_class(class_id: String) -> ShipClass:
 	return load(path) as ShipClass
 
 
-# Placeholder visual: a stretched cube rendering as a glowing vector wireframe.
-# Uses T09's wireframe.gdshader via the exported `wireframe_material` (wired in
-# OpenSea.tscn). The box geometry stays as placeholder until a real hull-mesh
-# ticket lands post-parity — BoxMesh has per-face UVs so the UV-based edge
-# detection draws all 12 edges cleanly. The StandardMaterial3D branch below is
-# a defensive fallback for the case where the scene export is missing.
+# Placeholder visual: composite wireframe ship — hull + bowsprit + mast + yard
+# + sail. Built via ShipMesh.build_player so future enemy ships can reuse the
+# same geometry generator. BoxMesh / PlaneMesh have per-face UVs so the
+# wireframe shader draws clean rectangular outlines.
+#
+# Inspired by the JS prototype's dinghy / sloop in models3d.js, but boxified.
+# A post-parity ticket may swap in proper hand-modelled hull/sail geometry per
+# ship class.
+#
+# `_mesh_instance` keeps pointing at the hull child so any future references to
+# "the ship's primary visual" stay valid.
 func _build_placeholder_mesh() -> void:
-	_mesh_instance = MeshInstance3D.new()
-	_mesh_instance.name = "Placeholder"
-	var box := BoxMesh.new()
-	# Roughly hull-shaped: long along -Z (forward), narrow along X, tall enough
-	# to see waves wash around.
-	box.size = Vector3(2.0, 1.5, 5.0)
-	_mesh_instance.mesh = box
-
-	# Load render tuning dynamically
 	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
 	if render_tuning == null:
 		push_warning("PlayerShip: failed to load RenderTuning resource - using runtime defaults")
 		render_tuning = RenderTuning.new()
 
-	if wireframe_material != null:
-		var wireframe_mat := wireframe_material.duplicate() as ShaderMaterial
-		# Player faction green per ARCHITECTURE.md § "Rendering decisions".
-		var player_green := Color("#33ff33")
-		var glow_color_v3 := Vector3(player_green.r, player_green.g, player_green.b)
-		wireframe_mat.set_shader_parameter("glow_color", glow_color_v3)
-		wireframe_mat.set_shader_parameter("glow_intensity", render_tuning.wireframe_glow_intensity)
-		wireframe_mat.set_shader_parameter("edge_thickness", render_tuning.wireframe_edge_thickness)
-		_mesh_instance.material_override = wireframe_mat
-	else:
-		push_warning("PlayerShip: wireframe_material export is null - falling back to solid color")
-		var mat := StandardMaterial3D.new()
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		var player_green := Color("#33ff33")
-		mat.albedo_color = player_green
-		mat.emission_enabled = true
-		mat.emission = player_green
-		mat.emission_energy_multiplier = 1.5
-		mat.disable_fog = true
-		_mesh_instance.material_override = mat
+	# Player faction green per ARCHITECTURE.md § "Rendering decisions".
+	var player_green := Color("#33ff33")
+	var glow_color_v3 := Vector3(player_green.r, player_green.g, player_green.b)
 
-	# Lift the visual so the mesh centre is around the waterline.
-	_mesh_instance.position = Vector3(0.0, 0.5, 0.0)
-	add_child(_mesh_instance)
+	if wireframe_material == null:
+		push_warning("PlayerShip: wireframe_material export is null - ShipMesh will build a fresh material from the wireframe shader")
+
+	var parts := ShipMesh.build_player(
+		wireframe_material,
+		glow_color_v3,
+		render_tuning.wireframe_glow_intensity,
+		render_tuning.wireframe_edge_thickness,
+	)
+	var visual := parts["root"] as Node3D
+	_mesh_instance = parts["hull"] as MeshInstance3D
+
+	# Lift the whole composite so the hull bottom sits roughly at the waterline.
+	# Hull centre is y=0 in local frame → lift by half-hull-height (0.5).
+	visual.position = Vector3(0.0, 0.5, 0.0)
+	add_child(visual)
 
