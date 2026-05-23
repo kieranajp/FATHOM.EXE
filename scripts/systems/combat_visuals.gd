@@ -140,36 +140,32 @@ func _rebuild_lines() -> void:
 	_lines_mesh.clear_surfaces()
 	# Bail if there's no line geometry to emit. Round-7: ball/grape projectiles
 	# no longer emit a trail (matches JS — projectiles are single rects, only
-	# sparks get the `* 0.04` motion trail). The lines surface only carries
-	# chain-shot whirl, splash rings, and spark trails now — so we need a
-	# chain projectile, a splash, or a spark to open a surface.
-	var has_chain := false
-	for p in World.projectiles:
-		if String(p.get("type", "ball")) == "chain":
-			has_chain = true
-			break
+	# sparks get the `* 0.04` motion trail). Round-10: chain moved off the
+	# PRIMITIVE_LINES surface entirely (now billboarded quads in _rebuild_heads
+	# so it reads at 4K instead of being a hairline). The lines surface only
+	# carries splash rings and spark trails now.
 	var has_sparks := false
 	for d in World.debris:
 		if bool(d.get("is_spark", false)):
 			has_sparks = true
 			break
-	if not has_chain and World.splashes.is_empty() and not has_sparks:
+	if World.splashes.is_empty() and not has_sparks:
 		return
 
 	_lines_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
-	_emit_projectiles()
 	_emit_splashes()
 	_emit_sparks()
 	_lines_mesh.surface_end()
 
 
-# Solid camera-facing quads for ball/grape projectile heads. Two triangles
-# per projectile (PRIMITIVE_TRIANGLES). Chain shot is intentionally NOT
-# included — it has its own paired-dot whirl in _emit_chain.
+# Solid camera-facing quads for projectile heads (PRIMITIVE_TRIANGLES).
+#   ball/grape → one quad per projectile.
+#   chain    → two head quads (bola ends) + one billboarded link quad
+#              connecting them. See _emit_chain_bola.
 #
 # Camera is resolved via the active viewport. Headless tests don't have one,
-# so we skip emission entirely — the trail (lines) is still produced and the
-# test contract (gte 10 verts in the lines surface) still holds.
+# so we skip emission entirely — splash + spark geometry on the lines surface
+# still emits.
 func _rebuild_heads() -> void:
 	_heads_mesh.clear_surfaces()
 	if World.projectiles.is_empty():
@@ -180,28 +176,22 @@ func _rebuild_heads() -> void:
 	var cam := vp.get_camera_3d()
 	if cam == null:
 		return
-	# Count emit-eligible projectiles before opening a surface to avoid an
-	# empty surface_end (engine warns loudly).
-	var any_quad := false
-	for p in World.projectiles:
-		if String(p.get("type", "ball")) != "chain":
-			any_quad = true
-			break
-	if not any_quad:
-		return
 
 	# Camera-space right/up — flatten via global_transform.basis so the quad
-	# always faces the camera regardless of pitch/yaw.
+	# always faces the camera regardless of pitch/yaw. Camera position is
+	# needed for the chain link's view-aligned perpendicular.
 	var cam_basis: Basis = cam.global_transform.basis
 	var cam_right: Vector3 = cam_basis.x
 	var cam_up: Vector3 = cam_basis.y
+	var cam_pos: Vector3 = cam.global_transform.origin
 
 	_heads_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 	for p in World.projectiles:
 		var t: String = String(p.get("type", "ball"))
 		if t == "chain":
-			continue
-		_emit_head_quad(p, t, cam_right, cam_up)
+			_emit_chain_bola(p, cam_right, cam_up, cam_pos)
+		else:
+			_emit_head_quad(p, t, cam_right, cam_up)
 	_heads_mesh.surface_end()
 
 
@@ -222,60 +212,27 @@ func _emit_head_quad(p: Dictionary, t: String, cam_right: Vector3, cam_up: Vecto
 	var head_color: Color = col * tuning.projectile_emission_energy
 	head_color.a = 1.0
 	var centre := Vector3(float(p.x), float(p.y), float(p.z))
-	var r: Vector3 = cam_right * half_extent
-	var u: Vector3 = cam_up * half_extent
-	# Quad corners. Two triangles, six verts. Material has `cull_mode =
-	# CULL_DISABLED` because billboarded quads' face normal is `cam_right ×
-	# cam_up = cam_basis.z`, which points AWAY from where the camera looks
-	# (Godot cameras look toward -basis.z) — under default CULL_BACK the quad
-	# was completely invisible (round-5 "tiny speck" regression: the speck was
-	# the LINES-surface trail; the head itself never rendered).
-	var v0: Vector3 = centre - r - u
-	var v1: Vector3 = centre + r - u
-	var v2: Vector3 = centre + r + u
-	var v3: Vector3 = centre - r + u
-	_heads_mesh.surface_set_color(head_color)
-	_heads_mesh.surface_add_vertex(v0)
-	_heads_mesh.surface_add_vertex(v1)
-	_heads_mesh.surface_add_vertex(v2)
-	_heads_mesh.surface_add_vertex(v0)
-	_heads_mesh.surface_add_vertex(v2)
-	_heads_mesh.surface_add_vertex(v3)
+	# Material has `cull_mode = CULL_DISABLED` because billboarded quads' face
+	# normal is `cam_right × cam_up = cam_basis.z`, which points AWAY from
+	# where the camera looks (Godot cameras look toward -basis.z) — under
+	# default CULL_BACK the quad was completely invisible (round-5 "tiny
+	# speck" regression: the speck was the LINES-surface trail; the head
+	# itself never rendered).
+	_emit_quad_at(centre, half_extent, head_color, cam_right, cam_up)
 
 
-# --- Projectiles ---
-func _emit_projectiles() -> void:
-	for p in World.projectiles:
-		var t: String = String(p.get("type", "ball"))
-		match t:
-			"chain":
-				_emit_chain(p)
-			_:
-				_emit_ball_or_grape(p, t)
-
-
-# Ball or grape: nothing emitted into the lines mesh. JS renders these as a
-# single small filled rect at the projectile centre — no velocity trail. The
-# trail-painting code that lived here in rounds 1-6 was a misread of JS: the
-# `* 0.04` factor at game.js:3384 is the SPARK (debris) trail, not the
-# projectile. With v=28 m/s the misplaced trail painted a 1.12m streak behind
-# every cannonball, which (combined with the bright head quad) made the
-# projectile read as having "too much range" — the visible streak ran further
-# than the actual ballistic flight.
+# Chain shot: BOLA. Two yellow head quads whirling around the projectile
+# centre at radius `chain_visual_radius`, joined by a billboarded thick-line
+# quad. Mirrors JS chain render (game.js:3287-3315) which draws two filled
+# yellow rects at p1/p2 = centre ± (sin·r, 0, cos·r) joined by a strokeLine.
 #
-# The bright head itself is a solid camera-facing quad emitted in
-# _rebuild_heads. Kept this function as a stub so the dispatch in
-# _emit_projectiles stays readable (and so a future ticket that wants a
-# real motion-blur fade has an obvious place to put it).
-func _emit_ball_or_grape(_p: Dictionary, _t: String) -> void:
-	pass
-
-
-# Chain shot: two yellow dots whirling around the projectile centre, joined by
-# a connecting line. Direct mirror of the JS chain render (game.js:3287-3315),
-# but expressed as three line segments because PRIMITIVE_LINES can't draw bare
-# points.
-func _emit_chain(p: Dictionary) -> void:
+# Geometry: 2 head quads × 6 verts + 1 link quad × 6 verts = 18 verts per
+# chain projectile. All emitted into the heads triangle surface so head + link
+# share the same backface-disabled material and bloom path.
+#
+# Round-10 supersedes the round-1..9 chain render which used PRIMITIVE_LINES
+# (1px in Vulkan — basically invisible at 4K, matched the bug report).
+func _emit_chain_bola(p: Dictionary, cam_right: Vector3, cam_up: Vector3, cam_pos: Vector3) -> void:
 	var angle: float = float(p.life) * tuning.chain_visual_speed
 	var r: float = tuning.chain_visual_radius
 	var px: float = float(p.x)
@@ -285,19 +242,65 @@ func _emit_chain(p: Dictionary) -> void:
 	var p2 := Vector3(px - sin(angle) * r, py, pz - cos(angle) * r)
 	var col: Color = CHAIN_COLOR * tuning.projectile_emission_energy
 	col.a = 1.0
-	_lines_mesh.surface_set_color(col)
-	# Connecting segment between the two ends.
-	_lines_mesh.surface_add_vertex(p1)
-	_lines_mesh.surface_add_vertex(p2)
-	# Short marker line on each end (so each dot reads as a chunky point even at
-	# range; without it the two endpoints disappear into the connection). Scaled
-	# proportionally with projectile_head_size so chain reads at the same visual
-	# weight as ball/grape after the round-4 bump.
-	var tick: float = tuning.projectile_head_size * 0.6
-	_lines_mesh.surface_add_vertex(p1 + Vector3(tick, 0, 0))
-	_lines_mesh.surface_add_vertex(p1 - Vector3(tick, 0, 0))
-	_lines_mesh.surface_add_vertex(p2 + Vector3(tick, 0, 0))
-	_lines_mesh.surface_add_vertex(p2 - Vector3(tick, 0, 0))
+
+	# 1. Two head quads at p1, p2.
+	_emit_quad_at(p1, tuning.chain_head_size, col, cam_right, cam_up)
+	_emit_quad_at(p2, tuning.chain_head_size, col, cam_right, cam_up)
+
+	# 2. Connecting link as a view-aligned billboarded quad — same formula as
+	#    ThickLineRenderer._append_quad. Perpendicular is (view × line)
+	#    normalised, scaled by half-thickness; if collinear with view, fall back
+	#    to cam_up projected onto the plane perpendicular to the line.
+	var half_t: float = tuning.chain_link_thickness * 0.5
+	var line_dir: Vector3 = p2 - p1
+	var line_len: float = line_dir.length()
+	if line_len <= 1e-5:
+		return
+	line_dir /= line_len
+	var mid: Vector3 = (p1 + p2) * 0.5
+	var view_dir: Vector3 = cam_pos - mid
+	var view_len: float = view_dir.length()
+	if view_len <= 1e-5:
+		return
+	view_dir /= view_len
+	var perp: Vector3 = view_dir.cross(line_dir)
+	var perp_len: float = perp.length()
+	if perp_len > 1e-5:
+		perp = (perp / perp_len) * half_t
+	else:
+		# Line points along view direction — fall back to cam_up flattened onto
+		# the plane perpendicular to the line so the quad doesn't degenerate.
+		var up_perp: Vector3 = cam_up - line_dir * cam_up.dot(line_dir)
+		if up_perp.length_squared() < 1e-10:
+			return
+		perp = up_perp.normalized() * half_t
+
+	_heads_mesh.surface_set_color(col)
+	_heads_mesh.surface_add_vertex(p1 + perp)
+	_heads_mesh.surface_add_vertex(p1 - perp)
+	_heads_mesh.surface_add_vertex(p2 + perp)
+	_heads_mesh.surface_add_vertex(p2 + perp)
+	_heads_mesh.surface_add_vertex(p1 - perp)
+	_heads_mesh.surface_add_vertex(p2 - perp)
+
+
+# Emits a single camera-facing quad of `half_extent` at `centre` with `col`.
+# Shared between projectile head rendering (_emit_head_quad) and the chain
+# bola's two ends. Six verts, two triangles.
+func _emit_quad_at(centre: Vector3, half_extent: float, col: Color, cam_right: Vector3, cam_up: Vector3) -> void:
+	var r: Vector3 = cam_right * half_extent
+	var u: Vector3 = cam_up * half_extent
+	var v0: Vector3 = centre - r - u
+	var v1: Vector3 = centre + r - u
+	var v2: Vector3 = centre + r + u
+	var v3: Vector3 = centre - r + u
+	_heads_mesh.surface_set_color(col)
+	_heads_mesh.surface_add_vertex(v0)
+	_heads_mesh.surface_add_vertex(v1)
+	_heads_mesh.surface_add_vertex(v2)
+	_heads_mesh.surface_add_vertex(v0)
+	_heads_mesh.surface_add_vertex(v2)
+	_heads_mesh.surface_add_vertex(v3)
 
 
 # Projectile colour by attacker faction. Falls back to is_player_owned when no

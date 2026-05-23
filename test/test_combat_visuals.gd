@@ -43,7 +43,12 @@ func test_empty_world_emits_no_surfaces() -> void:
 	assert_eq(mesh.get_surface_count(), 0, "Empty World means no surfaces emitted")
 
 
-func test_projectiles_produce_geometry() -> void:
+func test_projectiles_alone_emit_no_lines_surface() -> void:
+	# Round-10: chain moved off the PRIMITIVE_LINES surface (was a 1px hairline,
+	# invisible at 4K). Round-7: ball/grape never emit a trail. So with only
+	# projectiles in the world and no splashes/sparks, the lines surface is
+	# empty. Geometry for all three types now lives on the heads mesh — see
+	# test_chain_bola_emits_two_heads_plus_link below for the chain pin.
 	World.projectiles = [
 		{
 			"x": 0.0, "y": 5.0, "z": 0.0,
@@ -63,15 +68,8 @@ func test_projectiles_produce_geometry() -> void:
 	]
 	_visuals._process(0.016)
 	var mesh: ImmediateMesh = _visuals._lines_mesh
-	assert_eq(mesh.get_surface_count(), 1, "Chain projectile alone emits a single surface")
-	var arrays := mesh.surface_get_arrays(0)
-	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	# Round-7: ball/grape no longer emit any trail into the lines mesh (JS
-	# parity — only sparks get the `* 0.04` trail). The chain projectile is the
-	# only thing on the lines surface here: 1 connecting line (2 verts) + 2
-	# tick markers (4 verts) = 6 verts. Loose `gte` so future visual tweaks
-	# don't break this.
-	assert_gte(verts.size(), 6, "Chain projectile emits whirl + tick geometry")
+	assert_eq(mesh.get_surface_count(), 0,
+		"Projectiles alone don't populate the lines mesh — splashes/sparks are the only customers now")
 
 
 func test_ball_and_grape_emit_solid_head_quads() -> void:
@@ -146,11 +144,61 @@ func test_head_quad_has_authored_world_extent() -> void:
 		"Quad world width must be 2 × projectile_ball_size — catches round-5 'size pre-halved' confusion")
 
 
-func test_chain_only_emits_no_head_quad_with_camera() -> void:
-	# Even with a camera available, chain projectiles must NOT spawn head
-	# quads — they have their own whirling-dot rendering in the lines mesh.
+func test_chain_bola_link_thickness_drives_link_quad_width() -> void:
+	# Independent pin on the link quad's world-space width. Camera placed so the
+	# chain line (along world-X, between p1 and p2) is perpendicular to the view
+	# direction (camera straight above the projectile). In that geometry the
+	# link quad's perpendicular sits along world-Z and the spread between
+	# +perp and -perp verts equals `chain_link_thickness`.
+	#
+	# This catches a future bug where someone hard-codes the link thickness
+	# (e.g. accidentally reuses `projectile_head_size`) instead of reading
+	# `chain_link_thickness`. Bumping the tuning value must show up in geometry.
 	var cam := Camera3D.new()
 	add_child_autofree(cam)
+	cam.global_position = Vector3(0.0, 20.0, 0.0)
+	cam.look_at(Vector3(0.0, 0.0, 0.0), Vector3.FORWARD)
+	cam.current = true
+	await get_tree().process_frame
+
+	_visuals.tuning.chain_link_thickness = 0.5
+	_visuals.tuning.chain_visual_radius = 1.0
+	# life * speed = angle. Pick life so sin(angle)=1, cos(angle)=0 — i.e. p1, p2
+	# are along world-X.
+	var angle: float = PI * 0.5
+	var life: float = angle / _visuals.tuning.chain_visual_speed
+	World.projectiles = [
+		{"x": 0.0, "y": 0.0, "z": 0.0, "vx": 0.0, "vy": 0.0, "vz": 0.0,
+		 "life": life, "type": "chain", "is_player_owned": true},
+	]
+	_visuals._process(0.016)
+	var arrays := _visuals._heads_mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	# Last 6 verts are the link quad. Z-spread should be chain_link_thickness.
+	var min_z: float = INF
+	var max_z: float = -INF
+	for i in range(verts.size() - 6, verts.size()):
+		min_z = minf(min_z, verts[i].z)
+		max_z = maxf(max_z, verts[i].z)
+	var spread: float = max_z - min_z
+	assert_almost_eq(spread, 0.5, 0.02,
+		"Link quad width tracks chain_link_thickness — not a hard-coded constant")
+
+
+func test_chain_bola_emits_two_heads_plus_link() -> void:
+	# Round-10 regression pin: chain must render as a BOLA (two filled head
+	# quads + one billboarded link quad), NOT as a 1px-line hairline. If a
+	# future "let's simplify" reverts to PRIMITIVE_LINES the vertex count
+	# drops and this test fails loudly.
+	#
+	# Expected geometry on the heads (triangle) surface:
+	#   2 head quads × 6 verts each = 12
+	# + 1 link quad × 6 verts        =  6
+	#   total                         = 18
+	var cam := Camera3D.new()
+	add_child_autofree(cam)
+	cam.global_position = Vector3(0.0, 5.0, 10.0)
+	cam.look_at(Vector3(0.0, 0.0, 0.0), Vector3.UP)
 	cam.current = true
 	await get_tree().process_frame
 
@@ -160,8 +208,18 @@ func test_chain_only_emits_no_head_quad_with_camera() -> void:
 	]
 	_visuals._process(0.016)
 	var heads_mesh: ImmediateMesh = _visuals._heads_mesh
-	assert_eq(heads_mesh.get_surface_count(), 0,
-		"Chain projectiles emit no head quads, even with a camera available")
+	assert_eq(heads_mesh.get_surface_count(), 1,
+		"Chain bola lives on the heads-mesh triangle surface")
+	var arrays := heads_mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	assert_eq(verts.size(), 18,
+		"Chain bola = 2 head quads (12 verts) + 1 link quad (6 verts) = 18")
+
+	# Chain must NOT leak back into the lines surface — its old PRIMITIVE_LINES
+	# emission (a 1px hairline on a 4K display) was the round-10 bug.
+	var lines_mesh: ImmediateMesh = _visuals._lines_mesh
+	assert_eq(lines_mesh.get_surface_count(), 0,
+		"Chain no longer emits into the lines mesh — no hairline regression")
 
 
 func test_splashes_produce_ring_geometry() -> void:

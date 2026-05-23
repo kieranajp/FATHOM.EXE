@@ -14,11 +14,19 @@ class_name CombatVisualsTuning extends Tuning
 # projectiles to give the bullet a sense of motion).
 @export var projectile_trail_factor: float = 0.04
 
-# Chain shot offset — paired dots dance around the projectile centre at
+# Chain shot offset — two head quads dance around the projectile centre at
 # `chain_visual_speed * life` angle, `chain_visual_radius` metres apart.
 # Mirrors JS chain rendering (game.js:3289).
 @export var chain_visual_radius: float = 0.4
 @export var chain_visual_speed: float = 15.0
+
+# World-space thickness for the billboarded chain link connecting the two
+# bola heads. Round-10 reworked the chain visual from a PRIMITIVE_LINES
+# hairline (1px in Vulkan, invisible at 4K) to a billboarded quad in the
+# heads-mesh triangle surface. Sized just under render.tres
+# `line_thickness_world = 0.06` so the chain reads as a connecting tether
+# rather than competing with the heads themselves.
+@export var chain_link_thickness: float = 0.05
 
 # Colour overrides. Projectile colour is decided by attacker faction first;
 # if no faction info is available we fall back to is_player_owned (cyan vs.
@@ -44,6 +52,10 @@ class_name CombatVisualsTuning extends Tuning
 @export var projectile_ball_size: float = 0.67
 @export var projectile_grape_size: float = 0.34
 @export var projectile_head_size: float = 0.6
+# Chain bola end size. JS uses identical perspective-scaled rects for both
+# heads and would render at the same size as ball; we keep a dedicated knob
+# so a future ticket can dial chain ends down without resizing ball.
+@export var chain_head_size: float = 0.5
 
 # --- Splashes. ---
 # Horizontal ring at sea level; alpha scales with life / splash_life. The
