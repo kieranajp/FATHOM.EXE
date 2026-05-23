@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WindTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wind_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+angle_lerp_rate = 1.2
+change_min_seconds = 25.0
+change_max_seconds = 55.0
+speed_knots = 12.0
+initial_angle = 0.0

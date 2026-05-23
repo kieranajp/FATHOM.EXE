@@ -1,0 +1,104 @@
+# ChaseCamera — spring-lagged orbit camera. Sibling of PlayerShip (not a child)
+# so position lag works naturally; if it were parented to the ship it would
+# rigidly track yaw and we'd lose the "swing" feel.
+#
+# Right-mouse drag adds a relative pitch/yaw offset; offsets decay to zero
+# when released (faster while steering, slower while cruising — JS feel).
+# Hold Space → aim mode: camera freezes orbit at the active flank yaw (±π/2).
+class_name ChaseCamera extends Camera3D
+
+@export var tuning: CameraTuning
+@export var player_path: NodePath
+
+var _player: PlayerShip
+var _drag_offset_yaw: float = 0.0
+var _drag_offset_pitch: float = 0.0
+var _is_dragging: bool = false
+
+
+func _ready() -> void:
+	if tuning == null:
+		tuning = load("res://data/tuning/camera.tres") as CameraTuning
+	if player_path != NodePath(""):
+		var node := get_node_or_null(player_path)
+		if node is PlayerShip:
+			_player = node as PlayerShip
+
+
+func _process(delta: float) -> void:
+	if _player == null:
+		return
+
+	# Decay drag offsets to zero whenever no orbit drag is active AND we're not
+	# in aim mode. Aim mode is a hard pin — see the "freeze" branch below.
+	if not _is_dragging and not _player.aim_mode:
+		var steering := (
+			Input.is_action_pressed("steer_port")
+			or Input.is_action_pressed("steer_starboard")
+		)
+		var decay_rate: float = tuning.offset_decay_steering if steering else tuning.offset_decay_cruising
+		var ease: float = 1.0 - exp(-decay_rate * delta)
+		# Wrap drag yaw to [-PI, PI] before decaying so shortest-path is taken.
+		while _drag_offset_yaw < -PI:
+			_drag_offset_yaw += TAU
+		while _drag_offset_yaw > PI:
+			_drag_offset_yaw -= TAU
+		_drag_offset_yaw = lerpf(_drag_offset_yaw, 0.0, ease)
+		_drag_offset_pitch = lerpf(_drag_offset_pitch, 0.0, ease)
+
+	# Compose final orbit angles.
+	var final_yaw: float = _player.yaw + _drag_offset_yaw
+	if _player.aim_mode:
+		# Lock yaw offset to the active flank — JS broadside selectors.
+		var flank_offset: float = tuning.aim_flank_yaw_offset
+		if _player.aim_side == "port":
+			flank_offset = -flank_offset
+		final_yaw = _player.yaw + flank_offset
+	var final_pitch: float = clampf(
+		tuning.base_pitch + _drag_offset_pitch, tuning.min_pitch, tuning.max_pitch
+	)
+
+	# Orbit radius scales with ship size.
+	var hit_radius: float = 4.0
+	if _player.ship_class != null:
+		hit_radius = _player.ship_class.hit_radius
+	var r: float = tuning.base_orbit + hit_radius * tuning.radius_scale_factor
+
+	# Target position: orbit behind the ship, lifted by pitch * radius. Godot
+	# yaw=0 → -Z. The "behind" direction for yaw is +sin/+cos (opposite of the
+	# ship's forward velocity, which is -sin/-cos).
+	var pp: Vector3 = _player.global_position
+	var cos_pitch: float = cos(final_pitch)
+	var sin_pitch: float = sin(final_pitch)
+	var t: float = Time.get_ticks_msec() / 1000.0
+	var bob: float = sin(t * tuning.bob_frequency) * tuning.bob_amplitude
+
+	var target_x: float = pp.x + sin(final_yaw) * r * cos_pitch
+	var target_z: float = pp.z + cos(final_yaw) * r * cos_pitch
+	var target_y: float = pp.y + r * sin_pitch + bob
+
+	# Spring lag — frame-rate independent.
+	var ease_pos: float = 1.0 - exp(-tuning.follow_ease_rate * delta)
+	global_position = global_position.lerp(Vector3(target_x, target_y, target_z), ease_pos)
+
+	# Look-at framing: aim a bit above the ship. Blend a fraction of player
+	# roll for screen momentum.
+	var look_height: float = 0.0
+	if _player.ship_class != null:
+		look_height = _player.ship_class.hit_height * tuning.look_height_factor
+	var look_target: Vector3 = pp + Vector3(0.0, look_height, 0.0)
+	look_at(look_target, Vector3.UP)
+	# Apply roll bleed on top of look_at. look_at zeroes roll, so rotate around
+	# local Z to add it back.
+	rotate_object_local(Vector3.FORWARD, _player.roll * tuning.roll_blend)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_RIGHT:
+			_is_dragging = mb.pressed
+	elif event is InputEventMouseMotion and _is_dragging:
+		var mm := event as InputEventMouseMotion
+		_drag_offset_yaw += mm.relative.x * tuning.mouse_yaw_sensitivity
+		_drag_offset_pitch += mm.relative.y * tuning.mouse_pitch_sensitivity
