@@ -16,11 +16,14 @@ func test_chase_camera_has_no_aim_repositioning_helper() -> void:
 	# compute_aim_yaw_offset was removed in the "camera stays put in aim mode"
 	# refactor. If you find yourself wanting to re-add it, re-read the JS
 	# reference (game.js: camera formula does not branch on aim mode) and the
-	# round-3 PR notes before doing so.
+	# round-3 PR notes before doing so. has_method must be called on an
+	# instance — instantiate, check, free.
+	var cam := ChaseCamera.new()
 	assert_false(
-		ChaseCamera.has_method("compute_aim_yaw_offset"),
+		cam.has_method("compute_aim_yaw_offset"),
 		"compute_aim_yaw_offset must not exist — aim mode does not reposition the camera"
 	)
+	cam.free()
 
 
 func test_camera_tuning_has_no_aim_flank_yaw_offset() -> void:
