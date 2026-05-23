@@ -53,8 +53,11 @@ func _ready() -> void:
 # THE wave-height formula. Ported from the JS prototype (engine3d.js:202 et al).
 # t is in seconds since boot. Hardcoded constants are part of the equation, not
 # tuning — tunable visual params (radius, spacing) live in WorldTuning.
-func get_wave_height(x: float, z: float) -> float:
-	var t: float = Time.get_ticks_msec() / 1000.0
+#
+# `time_override` lets tests pin t to a known value; in normal play it stays NAN
+# and we read the engine clock. Any finite override wins.
+func get_wave_height(x: float, z: float, time_override: float = NAN) -> float:
+	var t: float = time_override if is_finite(time_override) else Time.get_ticks_msec() / 1000.0
 	var w1: float = sin(x * 0.05 + t * 1.5) * cos(z * 0.05 + t * 1.2) * 1.6
 	var w2: float = sin(z * 0.12 - t * 2.0) * 0.5
 	return w1 + w2
