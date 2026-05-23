@@ -104,6 +104,15 @@ func _process(delta: float) -> void:
 	rotate_object_local(Vector3.FORWARD, _player.roll * tuning.roll_blend)
 
 
+# Read accessor for the accumulated LMB-drag yaw offset. PlayerShip uses this
+# to pick the firing flank when aim mode toggles on — JS picks based on the
+# camera orbit offset (game.js:458), not the cursor X. Exposed via a getter
+# rather than the bare field so PlayerShip can keep _drag_offset_yaw private
+# to the camera.
+func get_drag_yaw_offset() -> float:
+	return _drag_offset_yaw
+
+
 # Static so test code can pin the camera-vs-firing-flank invariant without
 # spinning up a scene tree. Returns the yaw offset (from player.yaw) where the
 # chase camera should sit when aiming at `side`. The camera is placed OPPOSITE

@@ -21,6 +21,10 @@ const SHIP_DATA_DIR := "res://data/ships/"
 @export var tuning: SailingTuning
 @export var ocean_path: NodePath
 @export var wireframe_material: ShaderMaterial
+# Optional explicit NodePath to the ChaseCamera. When empty, we fall back to a
+# group lookup (`chase_camera` group on the camera node). Used to pick the
+# firing flank when aim mode toggles on — JS reads camera yaw, not cursor X.
+@export var chase_camera_path: NodePath
 
 # Public per-frame state — readable by camera, HUD (T07), AI proximity (T05).
 var yaw: float = 0.0
@@ -58,6 +62,8 @@ var _ship_model: LineModel
 var _ship_mesh: ImmediateMesh
 var _sail_level: float = 2.0
 # Mouse state for camera flank-side selection — referenced by ChaseCamera.
+# (Aim-side selection no longer uses this — see _aim_side_from_camera_yaw —
+# kept around so other consumers reading it don't break.)
 var last_mouse_x_norm: float = 0.0  # -1..+1 relative to viewport centre
 # Right-mouse-hold drives aim mode. Kept as a field (not Input.is_mouse_button_pressed)
 # so _unhandled_input is the single source of truth and the test helper can
@@ -174,6 +180,43 @@ static func _compute_aim_mode(right_mouse_held: bool, aim_action_pressed: bool) 
 	return right_mouse_held or aim_action_pressed
 
 
+# Aim-mode yaw drag — sign is negated because the chase camera now sits on
+# the OPPOSITE side of the firing flank (see ChaseCamera.compute_aim_yaw_offset).
+# That mirroring means a mouse-drag-right in screen space is a left-drag in
+# the firing-flank's local frame. JS reference (game.js:497) uses `+ dx`, but
+# JS placed the camera on the SAME side as firing, so we invert here to keep
+# the on-screen reticle moving with the cursor.
+static func _compute_aim_yaw_delta(mouse_dx: float, rate: float) -> float:
+	return -mouse_dx * rate
+
+
+# Aim-side selection from camera yaw offset. Mirrors JS game.js:458 —
+# `aimSide = mouse.yaw >= 0 ? 'starboard' : 'port'` where `mouse.yaw` is the
+# accumulated LMB-drag yaw on the orbit camera, not the cursor X. Static so the
+# unit test can pin the truth table without a scene tree.
+#
+# >= 0 (not just > 0) so a freshly-zeroed camera defaults to starboard, matching JS.
+static func _aim_side_from_camera_yaw(camera_yaw_offset: float) -> String:
+	return "starboard" if camera_yaw_offset >= 0.0 else "port"
+
+
+# Resolves the ChaseCamera reference. Prefers the explicit NodePath; falls
+# back to a `chase_camera` group lookup so the wire-up works even if the export
+# isn't set in the scene. Returns null if neither resolves (headless tests).
+func _get_chase_camera() -> ChaseCamera:
+	if chase_camera_path != NodePath(""):
+		var node := get_node_or_null(chase_camera_path)
+		if node is ChaseCamera:
+			return node as ChaseCamera
+	var tree := get_tree()
+	if tree == null:
+		return null
+	var cam := tree.get_first_node_in_group("chase_camera")
+	if cam is ChaseCamera:
+		return cam as ChaseCamera
+	return null
+
+
 # Input. Right-mouse + space are handled in _unhandled_input so the camera can
 # read drag deltas via the same event stream. _physics_process handles held
 # keys via Input.is_action_pressed for frame-rate independent ramping.
@@ -205,11 +248,13 @@ func _tick_input(delta: float) -> void:
 	var was_aim := aim_mode
 	aim_mode = _compute_aim_mode(_right_mouse_held, Input.is_action_pressed("aim"))
 	if aim_mode and not was_aim:
-		# Lock the active flank based on where the mouse was last. JS picks port
-		# vs starboard from the camera yaw offset; we use the simpler "which
-		# side of screen the mouse last was on" since the camera offset state
-		# lives on ChaseCamera and we want PlayerShip oblivious to that.
-		aim_side = "starboard" if last_mouse_x_norm >= 0.0 else "port"
+		# Lock the active flank based on the ChaseCamera's accumulated drag yaw
+		# offset — matches JS game.js:458 (`mouse.yaw >= 0 ? starboard : port`).
+		# Previous logic read `last_mouse_x_norm` (the bare cursor position),
+		# which defaulted to 0 → always-starboard when the cursor hadn't moved.
+		var camera := _get_chase_camera()
+		var camera_yaw: float = camera.get_drag_yaw_offset() if camera != null else 0.0
+		aim_side = _aim_side_from_camera_yaw(camera_yaw)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -272,7 +317,7 @@ func _tick_aim_drag(event: InputEventMouseMotion) -> void:
 		)
 	else:
 		aim_yaw_offset = clampf(
-			aim_yaw_offset + event.relative.x * combat_tuning.aim_mouse_yaw_rate,
+			aim_yaw_offset + _compute_aim_yaw_delta(event.relative.x, combat_tuning.aim_mouse_yaw_rate),
 			-combat_tuning.aim_yaw_max,
 			combat_tuning.aim_yaw_max,
 		)
@@ -465,7 +510,15 @@ func _build_placeholder_mesh() -> void:
 
 	# JS dinghy coords are in metres. The JS canvas renderer used scale=1 for
 	# the player too (game.js sea-spray block), so no extra scale is needed.
-	var inst := model.build_mesh_instance(1.0)
+	# Player ship bumps emission energy above LineModel's default 1.5 — see
+	# RenderTuning.player_ship_emission_energy. Bloom is exponential past the
+	# HDR threshold, so a higher multiplier reads as thicker on screen even
+	# though PRIMITIVE_LINES can't actually change line pixel width.
+	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
+	var emission_energy: float = 1.5
+	if render_tuning != null:
+		emission_energy = render_tuning.player_ship_emission_energy
+	var inst := model.build_mesh_instance(1.0, emission_energy)
 	inst.name = "ShipVisual"
 	_mesh_instance = inst
 	# Hold refs so _tick_sail_deformation can rebuild the existing mesh each

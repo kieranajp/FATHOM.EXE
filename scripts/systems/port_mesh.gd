@@ -42,7 +42,14 @@ static func build(port_def: PortDef) -> Node3D:
 	lh_root.position = Vector3(0.0, port_def.height, 0.0)
 	root.add_child(lh_root)
 
-	var lh_mesh := LIGHTHOUSE_MODEL.build_mesh_instance(1.0)
+	# Lighthouse gets its own bumped emission energy so the gallery flange +
+	# lantern read as crisply as the player ship at distance — see
+	# RenderTuning.lighthouse_emission_energy.
+	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
+	var lh_emission: float = 1.5
+	if render_tuning != null:
+		lh_emission = render_tuning.lighthouse_emission_energy
+	var lh_mesh := LIGHTHOUSE_MODEL.build_mesh_instance(1.0, lh_emission)
 	lh_mesh.name = "Tower"
 	lh_root.add_child(lh_mesh)
 

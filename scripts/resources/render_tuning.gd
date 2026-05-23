@@ -23,6 +23,14 @@ class_name RenderTuning extends Tuning
 @export var wireframe_glow_intensity: float = 4.0
 @export var wireframe_edge_thickness: float = 0.015
 
+# Per-target emission energy multipliers for LineModel materials. PRIMITIVE_LINES
+# can't change pixel thickness directly — apparent thickness is driven by bloom,
+# which is exponential past the HDR threshold. Bumping the player's multiplier
+# higher than the default 1.5 (LineModel's authored value) makes the player's
+# lines visibly chunkier without changing line topology.
+@export var player_ship_emission_energy: float = 3.0
+@export var lighthouse_emission_energy: float = 2.5
+
 @export_group("Bloom / Glow (WorldEnvironment)")
 @export var bloom_intensity: float = 2.0
 @export var bloom_strength: float = 1.1
