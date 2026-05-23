@@ -41,6 +41,16 @@ var _material: StandardMaterial3D
 var _verts: PackedVector3Array = PackedVector3Array()
 var _edges: PackedInt32Array = PackedInt32Array()
 
+# Screen-space reticle telemetry — three Labels parented under a CanvasLayer
+# that follow the projected reticle position. JS reference (game.js:3260-3280)
+# draws AIM/RANGE/ELEV text in monospace orange beside the reticle crosshair.
+var _label_layer: CanvasLayer
+var _label_aim: Label
+var _label_range: Label
+var _label_elev: Label
+const _LABEL_PIXEL_OFFSET_X: float = 18.0  # horizontal offset to clear the crosshair
+const _LABEL_LINE_HEIGHT: float = 14.0     # vertical spacing between AIM/RANGE/ELEV
+
 
 func _ready() -> void:
 	if tuning == null:
@@ -68,14 +78,97 @@ func _ready() -> void:
 	add_child(_mesh_instance)
 	_mesh_instance.visible = false
 
+	_build_telemetry_labels()
+
+
+# Three screen-space Labels (AIM / RANGE / ELEV) anchored to the reticle's
+# projected position. CanvasLayer keeps them on top of the 3D viewport without
+# interacting with the HUD's existing CanvasLayer (different layer index).
+# Monospace + orange to match the JS reference's terminal-panel aesthetic.
+func _build_telemetry_labels() -> void:
+	_label_layer = CanvasLayer.new()
+	_label_layer.name = "ReticleTelemetry"
+	# Layer 0 leaves the HUD CanvasLayer (default layer=1) on top. The reticle
+	# labels live in 3D space conceptually, so they live BELOW the HUD chrome.
+	_label_layer.layer = 0
+	add_child(_label_layer)
+
+	_label_aim = _make_label()
+	_label_range = _make_label()
+	_label_elev = _make_label()
+	_label_layer.add_child(_label_aim)
+	_label_layer.add_child(_label_range)
+	_label_layer.add_child(_label_elev)
+	_label_layer.visible = false
+
+
+func _make_label() -> Label:
+	var lbl := Label.new()
+	lbl.add_theme_color_override("font_color", OVERLAY_COLOR)
+	lbl.add_theme_font_size_override("font_size", 13)
+	# Drop-shadow for readability against bright sea — matches HUD label styling.
+	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	lbl.add_theme_constant_override("shadow_offset_x", 1)
+	lbl.add_theme_constant_override("shadow_offset_y", 1)
+	return lbl
+
 
 func _process(_delta: float) -> void:
 	var aim: Dictionary = World.aim_state
 	if aim == null or aim.is_empty() or _player == null or tuning == null:
 		_mesh_instance.visible = false
+		if _label_layer != null:
+			_label_layer.visible = false
 		return
 	_mesh_instance.visible = true
 	_rebuild(aim)
+	_update_telemetry_labels(aim)
+
+
+# Project the reticle into screen space and pin the three telemetry labels
+# beside it. JS reference: game.js:3268-3279 — RANGE/ELEV in metres at 1dp,
+# AIM line shows the active flank. Hidden when the camera can't see the
+# reticle (behind the camera, off-screen) so we don't draw stale floating text.
+func _update_telemetry_labels(aim: Dictionary) -> void:
+	if _label_layer == null:
+		return
+	var cam: Camera3D = get_viewport().get_camera_3d() if get_viewport() != null else null
+	if cam == null:
+		_label_layer.visible = false
+		return
+	var reticle: Vector3 = aim.get("reticle", Vector3.ZERO)
+	if cam.is_position_behind(reticle):
+		_label_layer.visible = false
+		return
+	_label_layer.visible = true
+	var screen: Vector2 = cam.unproject_position(reticle)
+
+	# Match JS line ordering: AIM (above centre), RANGE (centre), ELEV/DEPTH
+	# (below centre). All three offset right of the crosshair so the labels
+	# don't obscure the target underneath.
+	var side: String = String(aim.get("side", "starboard")).to_upper()
+	var aim_range: float = float(aim.get("range", 0.0))
+	var aim_height: float = float(aim.get("height", 0.0))
+
+	_label_aim.text = "AIM: %s FLANK" % side
+	_label_range.text = "RANGE: %dm" % int(round(aim_range))
+	_label_elev.text = _format_elev_text(aim_height)
+
+	# JS reference (game.js:3270-3274) positions the three lines at y-12 / y / y+12
+	# relative to the crosshair centre, with textX = screenPos.x + size + 12.
+	_label_aim.position = screen + Vector2(_LABEL_PIXEL_OFFSET_X, -_LABEL_LINE_HEIGHT)
+	_label_range.position = screen + Vector2(_LABEL_PIXEL_OFFSET_X, 0.0)
+	_label_elev.position = screen + Vector2(_LABEL_PIXEL_OFFSET_X, _LABEL_LINE_HEIGHT)
+
+
+# Static so the format string contract can be pinned by a unit test without
+# instancing AimOverlay + a scene tree.
+static func _format_elev_text(height_m: float) -> String:
+	if height_m >= 0.0:
+		return "ELEV: +%dm" % int(round(height_m))
+	# JS uses "DEPTH:" for negative aim — the cannon can't shoot below the
+	# waterline so this is mainly used to flag wave troughs / sinking targets.
+	return "DEPTH: %dm" % int(round(height_m))
 
 
 # Public-but-underscored entry — exercised by test_aim_overlay.gd. Synthetic aim

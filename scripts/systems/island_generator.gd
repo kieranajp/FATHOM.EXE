@@ -28,6 +28,21 @@ static func _rand(s: float) -> float:
 	return x - floor(x)
 
 
+# Returns the peak-vertex y for a given seed/height_max. PortMesh uses this to
+# anchor the lighthouse at the actual island peak rather than at the nominal
+# `port.height` — saddle (type 1) and atoll (type 3) push the peak well below
+# height_max and the lighthouse would otherwise float above the mound.
+#
+# Mirrors the height-mod branches in generate() — keep the two in sync.
+static func peak_height_for(island_seed: int, height_max: float) -> float:
+	var island_type: int = abs(island_seed) % 4
+	if island_type == 1:
+		return height_max * 0.4
+	if island_type == 3:
+		return height_max * 0.15
+	return height_max
+
+
 # Generate a topographic island LineModel.
 #
 # seed         — deterministic per-port int (e.g. Economy.port_seed(port.id))
@@ -43,12 +58,9 @@ static func generate(
 
 	var island_type: int = abs(island_seed) % 4
 
-	# 1. Peak vertex (index 0). Saddle/atoll keep the centre low.
-	var peak_height: float = height_max
-	if island_type == 1:
-		peak_height = height_max * 0.4
-	elif island_type == 3:
-		peak_height = height_max * 0.15
+	# 1. Peak vertex (index 0). Saddle/atoll keep the centre low — delegated to
+	# peak_height_for so PortMesh can anchor the lighthouse at the same y.
+	var peak_height: float = peak_height_for(island_seed, height_max)
 	verts.append(Vector3(0.0, peak_height, 0.0))  # z=0 → no flip needed
 
 	# 2. Concentric rings. Ring 0 is innermost (high), ring rings_count-1 is

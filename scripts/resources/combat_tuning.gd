@@ -37,8 +37,16 @@ class_name CombatTuning extends Tuning
 
 # --- Aim mode. ---
 @export var aim_range_min: float = 30.0
-@export var aim_range_max: float = 240.0
-@export var aim_range_default: float = 120.0
+# aim_range_max is clamped to the BALL projectile's physically reachable range
+# at default elevation. The ballistic solver in Combat._spawn_ball_or_chain sets
+# t = d / muzzle, then the projectile silently despawns when life expires —
+# so any reticle distance d > muzzle * ball_life simply puts a shot mid-air
+# at life=0 with no splash. With muzzle=28 and ball_life=4.0 the cap is 112m;
+# we round down to 110m to give a small safety margin. Don't raise this
+# without also raising ball_life (and re-checking chain_life undershoot).
+# See test_combat_aim_range.gd for the regression pin.
+@export var aim_range_max: float = 110.0
+@export var aim_range_default: float = 80.0
 @export var aim_yaw_max: float = PI / 4.0       # +/- pi/4 cone
 @export var aim_height_min: float = -10.0
 @export var aim_height_max: float = 30.0

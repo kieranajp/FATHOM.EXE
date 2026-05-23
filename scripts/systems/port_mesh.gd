@@ -52,9 +52,16 @@ static func build(port_def: PortDef) -> Node3D:
 
 	# Lighthouse: LineModel anchored on the island summit. The JS lighthouse
 	# has y=0..15.5 so it sits on top with no extra Y offset.
+	#
+	# Anchor at the GENERATED peak height (not port.height) — saddle (type 1)
+	# and atoll (type 3) lower the centre vertex to 0.4× / 0.15× of the nominal
+	# height, so reading port.height here floats the lighthouse above the mound
+	# for those types. peak_height_for() is the single source of truth shared
+	# with IslandGenerator.generate.
+	var peak_y: float = IslandGenerator.peak_height_for(island_seed, port_def.height)
 	var lh_root := Node3D.new()
 	lh_root.name = "Lighthouse"
-	lh_root.position = Vector3(0.0, port_def.height, 0.0)
+	lh_root.position = Vector3(0.0, peak_y, 0.0)
 	root.add_child(lh_root)
 
 	var lh_mesh := LIGHTHOUSE_MODEL.build_thick_mesh_instance(1.0, thickness, lh_emission, ref_dist)
