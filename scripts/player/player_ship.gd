@@ -130,6 +130,14 @@ func get_sail_level() -> float:
 	return _sail_level
 
 
+# Public writer used by the death-respawn handler (scripts/main.gd) to reset
+# the sail when the player is teleported to a port. Clamped to the 0..4 input
+# domain so callers can't push us out of bounds.
+func set_sail_level(value: float) -> void:
+	_sail_level = clampf(value, 0.0, 4.0)
+	GameState.ship.sail_level = _sail_level
+
+
 func get_speed_fraction() -> float:
 	# 0..1 of the ship's max speed — used by audio (wind sfx pitch) and HUD.
 	if ship_class == null or ship_class.base_max_speed <= 0.0:
