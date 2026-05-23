@@ -25,13 +25,23 @@ static func build(port_def: PortDef) -> Node3D:
 	var root := Node3D.new()
 	root.name = "PortVisual"
 
+	# All meshes use ThickLineMesh for resolution-independent line width.
+	# See RenderTuning.line_thickness_world. Lighthouse + island also bump
+	# emission to read crisply at distance.
+	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
+	var lh_emission: float = 1.5
+	var thickness: float = 0.04
+	if render_tuning != null:
+		lh_emission = render_tuning.lighthouse_emission_energy
+		thickness = render_tuning.line_thickness_world
+
 	# Island: procedural topographic LineModel. Seed deterministically off the
 	# port id so the same port reads the same silhouette every session — same
 	# pattern Economy uses for stocks/pricing (see Economy.port_seed).
 	var island_seed: int = _port_id_seed(port_def.id)
 	var island_model := IslandGenerator.generate(island_seed, port_def.size, port_def.height)
 	island_model.color = port_def.color
-	var island := island_model.build_mesh_instance(1.0)
+	var island := island_model.build_thick_mesh_instance(1.0, thickness)
 	island.name = "Island"
 	root.add_child(island)
 
@@ -42,14 +52,7 @@ static func build(port_def: PortDef) -> Node3D:
 	lh_root.position = Vector3(0.0, port_def.height, 0.0)
 	root.add_child(lh_root)
 
-	# Lighthouse gets its own bumped emission energy so the gallery flange +
-	# lantern read as crisply as the player ship at distance — see
-	# RenderTuning.lighthouse_emission_energy.
-	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
-	var lh_emission: float = 1.5
-	if render_tuning != null:
-		lh_emission = render_tuning.lighthouse_emission_energy
-	var lh_mesh := LIGHTHOUSE_MODEL.build_mesh_instance(1.0, lh_emission)
+	var lh_mesh := LIGHTHOUSE_MODEL.build_thick_mesh_instance(1.0, thickness, lh_emission)
 	lh_mesh.name = "Tower"
 	lh_root.add_child(lh_mesh)
 
@@ -70,7 +73,7 @@ static func build(port_def: PortDef) -> Node3D:
 		[Vector3.ZERO, Vector3(0.0, 0.0, -8.0)]
 	)
 	beam_model.edges = PackedInt32Array([0, 1])
-	var beam := beam_model.build_mesh_instance(1.0)
+	var beam := beam_model.build_thick_mesh_instance(1.0, thickness)
 	beam.name = "Beam"
 	beacon.add_child(beam)
 

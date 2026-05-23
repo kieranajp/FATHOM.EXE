@@ -55,11 +55,12 @@ var aim_reticle_world: Vector3 = Vector3.ZERO
 var ship_class: ShipClass
 var _ocean: Ocean
 var _mesh_instance: MeshInstance3D
-# Held references for the per-frame sail-deformation rebuild. The model carries
-# `deformations`; we drive `open_factor = _sail_level / 4.0` each frame so the
-# sail collapses to the yard at anchor and reaches full billow at sails-full.
+# Held references for the per-frame sail-deformation rebuild. The mesh is a
+# ThickLineMesh which already self-rebuilds against the active camera each
+# frame — we only need to push the open_factor (`_sail_level / 4`) into it so
+# the sail collapses to the yard at anchor and reaches full billow at sails-full.
 var _ship_model: LineModel
-var _ship_mesh: ImmediateMesh
+var _ship_visual: ThickLineMesh
 var _sail_level: float = 2.0
 # Mouse state for camera flank-side selection — referenced by ChaseCamera.
 # (Aim-side selection no longer uses this — see _aim_side_from_camera_yaw —
@@ -129,15 +130,13 @@ func _tick_aim_state() -> void:
 	}
 
 
-# Refreshes the ship mesh each tick to apply the sail-billow deformation at the
-# current `_sail_level`. Cost is trivial — 17 verts × 28 edges = 56 surface
-# vertex submissions per tick. Mirrors Ocean's rebuild-in-place pattern (keeps
-# the same ImmediateMesh ref, just clears + re-emits surfaces).
+# Pushes the current sail open_factor into the ThickLineMesh, which rebuilds
+# its triangles against the active camera each frame inside its own _process.
+# We don't trigger the rebuild here — just keep the field in sync.
 func _tick_sail_deformation() -> void:
-	if _ship_model == null or _ship_mesh == null:
+	if _ship_visual == null:
 		return
-	var open_factor: float = clampf(_sail_level / 4.0, 0.0, 1.0)
-	_ship_model.rebuild_immediate_mesh(_ship_mesh, 1.0, open_factor)
+	_ship_visual.open_factor = clampf(_sail_level / 4.0, 0.0, 1.0)
 
 
 # Public read accessors used by HUD/camera/etc.
@@ -474,10 +473,10 @@ func _load_ship_class(class_id: String) -> ShipClass:
 	return load(path) as ShipClass
 
 
-# Player visual: a LineModel rendered as PRIMITIVE_LINES — pentagonal hull,
-# masts, billowing sails with ribbing. Coordinates ported verbatim from the
-# JS prototype's per-class models (see data/models/*.tres + the comment on
-# each file for the JS→Godot Z-flip).
+# Player visual: a LineModel rendered as billboarded thick-line quads via
+# ThickLineMesh — pentagonal hull, masts, billowing sails with ribbing.
+# Coordinates ported verbatim from the JS prototype's per-class models (see
+# data/models/*.tres + the comment on each file for the JS→Godot Z-flip).
 #
 # Selection is class-based: we load `data/models/<ship_class_id>.tres`. If
 # the file is missing (e.g. a future class added to ShipClass before its
@@ -511,22 +510,22 @@ func _build_placeholder_mesh() -> void:
 
 	# JS dinghy coords are in metres. The JS canvas renderer used scale=1 for
 	# the player too (game.js sea-spray block), so no extra scale is needed.
-	# Player ship bumps emission energy above LineModel's default 1.5 — see
-	# RenderTuning.player_ship_emission_energy. Bloom is exponential past the
-	# HDR threshold, so a higher multiplier reads as thicker on screen even
-	# though PRIMITIVE_LINES can't actually change line pixel width.
+	# Player ship bumps emission energy above the LineModel default — see
+	# RenderTuning.player_ship_emission_energy. ThickLineMesh gives us real
+	# pixel thickness on top of the emissive bloom.
 	var render_tuning := load("res://data/tuning/render.tres") as RenderTuning
 	var emission_energy: float = 1.5
+	var thickness: float = 0.04
 	if render_tuning != null:
 		emission_energy = render_tuning.player_ship_emission_energy
-	var inst := model.build_mesh_instance(1.0, emission_energy)
+		thickness = render_tuning.line_thickness_world
+	var inst := model.build_thick_mesh_instance(1.0, thickness, emission_energy)
 	inst.name = "ShipVisual"
 	_mesh_instance = inst
-	# Hold refs so _tick_sail_deformation can rebuild the existing mesh each
-	# frame at open_factor = _sail_level / 4. The model is the (already
-	# duplicated) per-instance copy — safe to keep.
+	# Hold refs so _tick_sail_deformation can push open_factor each frame.
+	# The model is the (already duplicated) per-instance copy — safe to keep.
 	_ship_model = model
-	_ship_mesh = inst.mesh as ImmediateMesh
+	_ship_visual = inst
 	add_child(inst)
 	# Apply initial deformation so the boot-state sail level matches what the
 	# player will see in the first physics tick.
