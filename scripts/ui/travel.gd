@@ -18,6 +18,7 @@ var _is_intercept: bool = false
 # Per-trip intercept payload (1 or 2 sloops); rolled once on _ready and read
 # in _complete_travel so tests can inspect/override deterministically.
 var _intercept_count: int = 0
+var _last_fired_decile: int = 0
 
 # Number of pirate sloops to drop on an intercept. JS reference rolls 1-2;
 # keep the band tight so intercept feels punchy without being a TPK.
@@ -75,10 +76,19 @@ func _emit_calm_message() -> void:
 
 func _emit_intercept_message() -> void:
 	EventBus.hud_message.emit("INTERCEPTED BY PIRATES!", "alert")
+	AudioBus.play_alarm_siren()
 
 
 func _process(delta: float) -> void:
 	_time_elapsed += delta
+
+	# Travel progress decile sweep tones (Issue 49)
+	if not _is_intercept and _travel_duration > 0.0:
+		var progress := clampf(_time_elapsed / _travel_duration, 0.0, 1.0)
+		var decile := int(floor(progress * 10.0))
+		if decile > _last_fired_decile:
+			AudioBus.play_travel_sweep(progress)
+			_last_fired_decile = decile
 	
 	if _time_elapsed >= _travel_duration:
 		set_process(false)

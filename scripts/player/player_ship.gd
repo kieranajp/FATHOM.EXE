@@ -88,6 +88,10 @@ func _physics_process(delta: float) -> void:
 	_tick_aim_state()
 	GameState.ship.sail_level = _sail_level
 
+	# Wind frequency updates with ship speed (Issue 49)
+	var intensity: float = clampf(speed / ship_class.base_max_speed, 0.0, 1.0) if ship_class != null and ship_class.base_max_speed > 0.0 else 0.0
+	AudioBus.update_wind_frequency(intensity)
+
 
 # Recomputes the aim reticle + publishes World.aim_state. AimOverlay and HUD
 # read this every frame; if aim_mode is off, we clear the dict so consumers
