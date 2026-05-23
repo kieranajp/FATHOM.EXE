@@ -73,6 +73,7 @@ func _process(delta: float) -> void:
 	_tick_enemies(delta)
 	_tick_target_acquisition()
 	_tick_reload_timers(delta)
+	_tick_no_fire_zone_proximity()
 
 
 # --- Player-side reload countdown. ---
@@ -555,3 +556,23 @@ func _on_archipelago_changed(_arch: ArchipelagoDef) -> void:
 	World.active_target = null
 	World.enforcer_alert_active = false
 	World.enforcer = null
+
+
+# Compute player no-fire zone proximity flag (T50 warning banner)
+func _tick_no_fire_zone_proximity() -> void:
+	if _player == null or tuning == null:
+		World.is_in_no_fire_zone = false
+		return
+	var in_zone := false
+	var radius := tuning.no_fire_zone_radius
+	for node in get_tree().get_nodes_in_group("port"):
+		if not (node is Port):
+			continue
+		var port := node as Port
+		if port.port_def == null:
+			continue
+		var d: float = _player.global_position.distance_to(port.global_position)
+		if d < radius:
+			in_zone = true
+			break
+	World.is_in_no_fire_zone = in_zone

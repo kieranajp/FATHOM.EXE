@@ -46,6 +46,9 @@ var enforcer: Node = null
 # next initial-spawn tick. 0 means "no pending intercept" (normal seed only).
 var pending_intercept_count: int = 0
 
+# Proximity flag continuously computed by CombatSystem each tick (T50 warning banner)
+var is_in_no_fire_zone: bool = false
+
 
 func clear() -> void:
 	enemies.clear()
@@ -59,3 +62,4 @@ func clear() -> void:
 	enforcer_alert_active = false
 	enforcer = null
 	pending_intercept_count = 0
+	is_in_no_fire_zone = false

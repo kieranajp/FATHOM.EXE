@@ -103,6 +103,8 @@ const _BASE_HP_COLOR: Color = Color("#ff5555")  # battle-panel HP bar is red-the
 const _LOW_HP_COLOR: Color = Color("#ff3333")
 const _NEUTRAL_COLOR: Color = Color(0.85, 0.85, 0.85, 0.9)
 
+var _no_fire_banner: Label
+
 
 func _ready() -> void:
 	if tuning == null:
@@ -126,6 +128,21 @@ func _ready() -> void:
 	_dock_prompt.visible = false
 	_low_hp_overlay.visible = false
 	_inventory_screen.visible = false
+
+	# Dynamic NoFireZoneBanner initialization (Issue 50)
+	_no_fire_banner = Label.new()
+	_no_fire_banner.text = "[ HARBOR SECURITY: NO-FIRE ZONE ]"
+	_no_fire_banner.add_theme_color_override("font_color", Color("#ffaa33")) # Amber color
+	_no_fire_banner.add_theme_font_size_override("font_size", 13)
+	_no_fire_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_no_fire_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_no_fire_banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_no_fire_banner.offset_left = -180.0
+	_no_fire_banner.offset_right = 180.0
+	_no_fire_banner.offset_top = 150.0
+	_no_fire_banner.offset_bottom = 175.0
+	_no_fire_banner.visible = false
+	_root.add_child(_no_fire_banner)
 
 	_alert_timer.one_shot = true
 	_alert_timer.timeout.connect(_on_alert_timeout)
@@ -181,6 +198,10 @@ func _process(delta: float) -> void:
 		_tick_target_panel()
 		_tick_low_hp_flash(delta)
 		_refresh_clock()
+		
+		# Toggle NoFireZoneBanner visibility based on World state (Issue 50)
+		if _no_fire_banner != null:
+			_no_fire_banner.visible = World.is_in_no_fire_zone
 
 
 # -------- NAVIGATION panel --------

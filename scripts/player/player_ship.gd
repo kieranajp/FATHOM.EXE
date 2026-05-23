@@ -374,13 +374,24 @@ func _apply_transform() -> void:
 
 
 func _handle_collision(port: Port) -> void:
-	GameState.ship.health = maxf(0.0, GameState.ship.health - tuning.collision_damage)
-	speed = tuning.collision_bounce_speed
-	collision_immunity_timer = tuning.collision_immunity_seconds
+	var dmg: float = tuning.collision_damage if tuning != null else 10.0
+	GameState.ship.health = maxf(0.0, GameState.ship.health - dmg)
+	speed = tuning.collision_bounce_speed if tuning != null else -2.0
+	collision_immunity_timer = tuning.collision_immunity_seconds if tuning != null else 3.0
 
-	# port.port_def is non-null by construction (collision loop filters it),
-	# so the signal always carries a real PortDef.
-	EventBus.island_collided.emit(port.port_def, self)
+	var port_name := "REEF"
+	var port_def: PortDef = null
+	if port != null and port.port_def != null:
+		port_def = port.port_def
+		port_name = port_def.display_name
+	
+	EventBus.hud_message.emit(
+		"RUN AGROUND AT %s — HULL DAMAGE (-%d HP)" % [port_name.to_upper(), int(dmg)],
+		"alert"
+	)
+
+	if port_def != null:
+		EventBus.island_collided.emit(port_def, self)
 
 
 func _load_ship_class(class_id: String) -> ShipClass:
