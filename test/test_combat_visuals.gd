@@ -102,6 +102,49 @@ func test_ball_and_grape_emit_solid_head_quads() -> void:
 	assert_eq(verts.size(), 12, "Two non-chain projectiles → 12 head-quad vertices")
 
 
+func test_head_quad_has_authored_world_extent() -> void:
+	# Round-6 regression guard. Pins the quad's actual world-space extent rather
+	# than just vertex count — catches future bugs where someone:
+	#   - renames the variable to `half` and silently treats the tuning value as
+	#     already-halved (round-5's near-miss),
+	#   - applies a non-unit scale on the camera ancestor (basis vectors stop
+	#     being unit length and the quad shrinks),
+	#   - flips the cull_mode back to CULL_BACK and the head vanishes (we can't
+	#     test "visible" directly, but we can pin the geometry that drives it).
+	#
+	# Camera placed so cam_right is roughly world-X — makes the assertion
+	# tractable without trig.
+	var cam := Camera3D.new()
+	add_child_autofree(cam)
+	cam.global_position = Vector3(0.0, 5.0, 10.0)
+	cam.look_at(Vector3(0.0, 0.0, 0.0), Vector3.UP)
+	cam.current = true
+	await get_tree().process_frame
+
+	_visuals.tuning.projectile_ball_size = 1.0
+	World.projectiles = [
+		{"x": 0.0, "y": 0.0, "z": 0.0, "vx": 0.0, "vy": 0.0, "vz": 0.0,
+		 "life": 2.0, "type": "ball", "is_player_owned": true},
+	]
+	_visuals._process(0.016)
+	var arrays := _visuals._heads_mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	assert_eq(verts.size(), 6, "Ball projectile emits 6 verts (2 triangles)")
+
+	# All six verts should sit within a sphere of radius sqrt(2) * size around
+	# the projectile centre — and the horizontal spread (max X minus min X)
+	# must be close to 2 * projectile_ball_size = 2.0m (camera is purely along
+	# +Z so cam_right ≈ world-X exactly).
+	var min_x: float = INF
+	var max_x: float = -INF
+	for v in verts:
+		min_x = minf(min_x, v.x)
+		max_x = maxf(max_x, v.x)
+	var width: float = max_x - min_x
+	assert_almost_eq(width, 2.0, 0.05,
+		"Quad world width must be 2 × projectile_ball_size — catches round-5 'size pre-halved' confusion")
+
+
 func test_chain_only_emits_no_head_quad_with_camera() -> void:
 	# Even with a camera available, chain projectiles must NOT spawn head
 	# quads — they have their own whirling-dot rendering in the lines mesh.

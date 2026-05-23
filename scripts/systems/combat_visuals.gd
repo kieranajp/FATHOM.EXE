@@ -71,6 +71,14 @@ func _ready() -> void:
 	# the same unshaded + per-vertex-colour approach as the lines mesh so the
 	# bloom chain picks up bright projectile colours the same way.
 	_heads_material = _build_lines_material()
+	# CRITICAL: disable backface culling. The quad we build in _emit_head_quad
+	# uses `cam_basis.x` and `cam_basis.y` as edges; the resulting face normal
+	# is `cam_basis.x × cam_basis.y = cam_basis.z`, which in Godot points AWAY
+	# from where the camera looks. Both triangles are therefore back-facing
+	# from the chase cam, and default CULL_BACK hides the entire head — that's
+	# the round-5 "tiny speck" regression: what the user saw was the trail in
+	# the lines surface, not the head quad at all.
+	_heads_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_heads_mesh = ImmediateMesh.new()
 	_heads_instance = MeshInstance3D.new()
 	_heads_instance.name = "CombatHeads"
@@ -193,19 +201,29 @@ func _rebuild_heads() -> void:
 
 func _emit_head_quad(p: Dictionary, t: String, cam_right: Vector3, cam_up: Vector3) -> void:
 	var col: Color
-	var half: float
+	# `half_extent` is the quad's half-width/half-height in world metres
+	# (configured value in combat_visuals.tres). Final quad is 2× this on each
+	# axis — so `projectile_ball_size = 1.0` → 2.0m square at the head.
+	# Named explicitly to avoid the round-5 ambiguity that called it `half` (as
+	# if it had been pre-halved already) and made the regression hard to spot.
+	var half_extent: float
 	if t == "grape":
 		col = GRAPE_COLOR
-		half = tuning.projectile_grape_size
+		half_extent = tuning.projectile_grape_size
 	else:
 		col = _color_for_projectile(p)
-		half = tuning.projectile_ball_size
+		half_extent = tuning.projectile_ball_size
 	var head_color: Color = col * tuning.projectile_emission_energy
 	head_color.a = 1.0
 	var centre := Vector3(float(p.x), float(p.y), float(p.z))
-	var r: Vector3 = cam_right * half
-	var u: Vector3 = cam_up * half
-	# Quad corners. Two triangles, six verts. Winding doesn't matter (unshaded).
+	var r: Vector3 = cam_right * half_extent
+	var u: Vector3 = cam_up * half_extent
+	# Quad corners. Two triangles, six verts. Material has `cull_mode =
+	# CULL_DISABLED` because billboarded quads' face normal is `cam_right ×
+	# cam_up = cam_basis.z`, which points AWAY from where the camera looks
+	# (Godot cameras look toward -basis.z) — under default CULL_BACK the quad
+	# was completely invisible (round-5 "tiny speck" regression: the speck was
+	# the LINES-surface trail; the head itself never rendered).
 	var v0: Vector3 = centre - r - u
 	var v1: Vector3 = centre + r - u
 	var v2: Vector3 = centre + r + u

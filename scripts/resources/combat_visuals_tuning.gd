@@ -29,17 +29,19 @@ class_name CombatVisualsTuning extends Tuning
 # Head marker size for ball/grape projectiles, in metres.
 #
 # Round-4 drew a 3-axis "+" of line ticks at the head — invisibly thin on a
-# 4K display (PRIMITIVE_LINES is 1px in Vulkan) and read as an X-cross from
-# the chase cam rather than a solid threat. Round-5 swaps that for a single
-# camera-facing FILLED quad (one per ball/grape projectile) emitted into a
-# dedicated PRIMITIVE_TRIANGLES surface; the size below is the quad's
-# half-extent in world metres, so 0.6 = 1.2m square at the head.
+# 4K display (PRIMITIVE_LINES is 1px in Vulkan). Round-5 swapped to a camera-
+# facing FILLED quad in a dedicated PRIMITIVE_TRIANGLES surface but didn't
+# disable backface culling, so the entire head vanished (Godot's default
+# CULL_BACK eats both triangles when their normal `cam_right × cam_up`
+# = `cam_basis.z` points away from the camera's look direction). Round-6
+# fixes that on the material side and authors the size as the quad's
+# half-extent in world metres — `projectile_ball_size = 1.0` → 2.0m square.
 #
 # Grape pellets get their own (smaller) size so the cluster reads as many
 # tiny dots rather than a single fat blob.
 # `projectile_head_size` is retained for chain-shot tick scaling.
-@export var projectile_ball_size: float = 0.6
-@export var projectile_grape_size: float = 0.3
+@export var projectile_ball_size: float = 1.0
+@export var projectile_grape_size: float = 0.5
 @export var projectile_head_size: float = 0.6
 
 # --- Splashes. ---
