@@ -146,17 +146,10 @@ func total_cargo_count(ship: PlayerState) -> float:
 func max_cargo_for(ship: PlayerState) -> int:
 	if ship == null:
 		return 0
-	var cls := _load_ship_class(ship.ship_class_id)
+	var cls := ShipClass.load_or_default(ship.ship_class_id)
 	if cls == null:
 		return 100
 	return cls.max_cargo
-
-
-func _load_ship_class(class_id: String) -> ShipClass:
-	var path := SHIPS_DIR + class_id + ".tres"
-	if not ResourceLoader.exists(path):
-		return null
-	return load(path) as ShipClass
 
 
 # Buy-cargo validation. Returns { "success": bool, "reason": String (on fail) }.

@@ -5,7 +5,6 @@ extends Node
 
 var enemies: Array = []        # Array[EnemyShip] (typed at use site to avoid an autoload→class dependency)
 var projectiles: Array = []    # Dictionary form for speed; schema documented on combat.gd
-var particles: Array = []      # sea spray
 var debris: Array = []
 var splashes: Array = []
 
@@ -53,7 +52,6 @@ var is_in_no_fire_zone: bool = false
 func clear() -> void:
 	enemies.clear()
 	projectiles.clear()
-	particles.clear()
 	debris.clear()
 	splashes.clear()
 	active_port = null

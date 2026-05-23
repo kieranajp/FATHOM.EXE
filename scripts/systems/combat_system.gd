@@ -17,7 +17,14 @@ class_name CombatSystem extends Node
 @export var ocean_path: NodePath
 @export var enemies_root_path: NodePath  # Node3D parent for spawned enemies; falls back to OpenSea root
 
-var _player: PlayerShip
+var _player: PlayerShip:
+	set(val):
+		if _player != null and _player.fire_requested.is_connected(player_fire):
+			_player.fire_requested.disconnect(player_fire)
+		_player = val
+		if _player != null:
+			if not _player.fire_requested.is_connected(player_fire):
+				_player.fire_requested.connect(player_fire)
 var _ocean: Ocean
 var _enemies_root: Node3D
 var _ports_root: Node
@@ -87,10 +94,16 @@ func _process(delta: float) -> void:
 # fields, but the countdown is a combat concern, not a sailing concern). This
 # keeps player and AI reload logic in one place.
 func _tick_reload_timers(delta: float) -> void:
-	if _player.reload_port > 0.0:
-		_player.reload_port = maxf(0.0, _player.reload_port - delta)
-	if _player.reload_stbd > 0.0:
-		_player.reload_stbd = maxf(0.0, _player.reload_stbd - delta)
+	if _player != null:
+		if _player.reload_port > 0.0:
+			_player.reload_port = maxf(0.0, _player.reload_port - delta)
+		if _player.reload_stbd > 0.0:
+			_player.reload_stbd = maxf(0.0, _player.reload_stbd - delta)
+	for enemy in World.enemies:
+		if enemy.reload_timer > 0.0:
+			enemy.reload_timer = maxf(0.0, enemy.reload_timer - delta)
+			enemy.reload_port = enemy.reload_timer
+			enemy.reload_stbd = enemy.reload_timer
 
 
 # --- Projectile integration + hit detection. ---
@@ -281,11 +294,7 @@ func _tick_enemies(delta: float) -> void:
 				enemy.queue_free()
 			continue
 
-		# Decrement reload + debuff timers (independent of who fired last).
-		if enemy.reload_timer > 0.0:
-			enemy.reload_timer = maxf(0.0, enemy.reload_timer - delta)
-			enemy.reload_port = enemy.reload_timer
-			enemy.reload_stbd = enemy.reload_timer
+		# Decrement speed debuff timers (reload ticked in _tick_reload_timers).
 		if enemy.speed_debuff_timer > 0.0:
 			enemy.speed_debuff_timer = maxf(0.0, enemy.speed_debuff_timer - delta)
 

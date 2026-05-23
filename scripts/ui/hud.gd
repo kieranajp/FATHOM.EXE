@@ -54,7 +54,7 @@ const ARCHIPELAGO_DIR := "res://data/archipelagos/"
 # Mapping: sail_level 4 == FULL (top label), 0 == ANCH (bottom label). Indexed
 # top-down to match the VBox children order in the scene.
 const _SAILS_LABEL_COUNT := 5
-const _SAILS_ACTIVE_COLOR := Color("#33ff33")
+var _SAILS_ACTIVE_COLOR := Factions.color_for("player")
 const _SAILS_INACTIVE_COLOR := Color(0.2, 1, 0.4, 0.4)
 
 # --- BATTLE TELEMETRY panel ---

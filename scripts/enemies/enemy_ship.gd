@@ -45,7 +45,7 @@ const SHIP_DATA_DIR := "res://data/ships/"
 
 
 func _ready() -> void:
-	ship_class = _load_ship_class(ship_class_id)
+	ship_class = ShipClass.load_or_default(ship_class_id)
 	if ship_class != null:
 		max_health = ship_class.max_health
 		health = ship_class.max_health
@@ -81,6 +81,7 @@ func as_state_dict() -> Dictionary:
 		"hit_height": ship_class.hit_height if ship_class != null else 6.0,
 		"ship_class_id": ship_class_id,
 		"is_player_owned": false,
+		"faction_id": faction_id,
 	}
 
 
@@ -96,19 +97,7 @@ func apply_state_dict(state: Dictionary) -> void:
 	reload_timer = maxf(reload_port, reload_stbd)
 
 
-func _load_ship_class(class_id: String) -> ShipClass:
-	var path: String = SHIP_DATA_DIR + class_id + ".tres"
-	if not ResourceLoader.exists(path):
-		push_warning("EnemyShip: ship class '%s' not found at %s" % [class_id, path])
-		var fallback := ShipClass.new()
-		fallback.id = class_id
-		fallback.max_health = 100.0
-		fallback.base_max_speed = 5.0
-		fallback.firepower = 1
-		fallback.hit_radius = 4.0
-		fallback.hit_height = 6.0
-		return fallback
-	return load(path) as ShipClass
+
 
 
 # Visual: class-specific LineModel tinted by faction. Mirrors the player ship's

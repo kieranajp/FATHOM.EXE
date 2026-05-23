@@ -43,7 +43,7 @@ static func build(port_def: PortDef) -> Node3D:
 	# Island: procedural topographic LineModel. Seed deterministically off the
 	# port id so the same port reads the same silhouette every session — same
 	# pattern Economy uses for stocks/pricing (see Economy.port_seed).
-	var island_seed: int = _port_id_seed(port_def.id)
+	var island_seed: int = Economy.port_seed(port_def.id)
 	var island_model := IslandGenerator.generate(island_seed, port_def.size, port_def.height)
 	island_model.color = port_def.color
 	var island := island_model.build_thick_mesh_instance(1.0, thickness, 1.5, ref_dist)
@@ -91,13 +91,3 @@ static func build(port_def: PortDef) -> Node3D:
 
 	return root
 
-
-# Deterministic seed from port id — same algorithm as Economy.port_seed (sum
-# of unicode codepoints). Duplicated rather than imported because Economy is
-# an autoload singleton and this static builder is called before scene-tree
-# entry in some test paths. Keep them numerically identical.
-static func _port_id_seed(port_id: String) -> int:
-	var total: int = 0
-	for i in range(port_id.length()):
-		total += port_id.unicode_at(i)
-	return total

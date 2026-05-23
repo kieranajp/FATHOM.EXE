@@ -16,6 +16,8 @@
 # at runtime. See docs/ARCHITECTURE.md § "Coordinate conversions".
 class_name PlayerShip extends Node3D
 
+signal fire_requested(side: String)
+
 const SHIP_DATA_DIR := "res://data/ships/"
 
 @export var tuning: SailingTuning
@@ -76,7 +78,7 @@ func _ready() -> void:
 	if tuning == null:
 		tuning = load("res://data/tuning/sailing.tres") as SailingTuning
 
-	ship_class = _load_ship_class(GameState.ship.ship_class_id)
+	ship_class = ShipClass.load_or_default(GameState.ship.ship_class_id)
 	_sail_level = GameState.ship.sail_level
 
 	_build_placeholder_mesh()
@@ -358,16 +360,7 @@ func _tick_aim_drag(event: InputEventMouseMotion) -> void:
 # Forwards a fire input to the CombatSystem. Lookup is cheap (one find_child)
 # and only runs on key-down events, so we don't bother caching.
 func _request_fire(side: String) -> void:
-	var tree := get_tree()
-	if tree == null:
-		return
-	var root := tree.current_scene
-	if root == null:
-		return
-	var combat := root.find_child("CombatSystem", true, false) as CombatSystem
-	if combat == null:
-		return
-	combat.player_fire(side)
+	fire_requested.emit(side)
 
 
 # Loads the shared CombatTuning. Cached on the node so repeated mouse-drag
@@ -490,14 +483,7 @@ func _handle_collision(port: Port) -> void:
 		EventBus.island_collided.emit(port_def, self)
 
 
-func _load_ship_class(class_id: String) -> ShipClass:
-	var path := SHIP_DATA_DIR + class_id + ".tres"
-	if not ResourceLoader.exists(path):
-		push_warning("PlayerShip: ship class '%s' not found at %s — using runtime default" % [class_id, path])
-		var fallback := ShipClass.new()
-		fallback.id = class_id
-		return fallback
-	return load(path) as ShipClass
+
 
 
 # Player visual: a LineModel rendered as billboarded thick-line quads via
@@ -531,7 +517,7 @@ func _build_placeholder_mesh() -> void:
 	# Player faction green per ARCHITECTURE.md § "Rendering decisions". Override
 	# the model's stored colour so the resource can be reused for non-player
 	# dinghies later with a different tint.
-	var player_green := Color("#33ff33")
+	var player_green := Factions.color_for("player")
 	model = model.duplicate() as LineModel
 	model.color = player_green
 
@@ -575,6 +561,6 @@ func update_ship_class() -> void:
 	if old_visual != null:
 		old_visual.queue_free()
 	
-	ship_class = _load_ship_class(GameState.ship.ship_class_id)
+	ship_class = ShipClass.load_or_default(GameState.ship.ship_class_id)
 	_build_placeholder_mesh()
 

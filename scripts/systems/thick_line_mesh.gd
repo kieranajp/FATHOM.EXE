@@ -60,7 +60,7 @@ func _process(_delta: float) -> void:
 	var cam_local: Vector3 = global_transform.affine_inverse() * cam.global_position
 	# Build a deformed vertex array. For models without deformations this is
 	# just the scaled originals; for sails it tweens against open_factor.
-	var verts := _deformed_vertices()
+	var verts := model.deformed_vertices(scale_factor, open_factor)
 	ThickLineRenderer.rebuild(
 		_imm_mesh,
 		verts,
@@ -70,28 +70,3 @@ func _process(_delta: float) -> void:
 		material_override,
 		reference_distance,
 	)
-
-
-# Mirrors LineModel._deformed_vertex but emits the full array up-front so
-# ThickLineRenderer can index it freely. A bit wasteful for static models —
-# fine in practice; vertex counts are tens, not thousands.
-func _deformed_vertices() -> PackedVector3Array:
-	var n: int = model.vertices.size()
-	var out := PackedVector3Array()
-	out.resize(n)
-	for idx in range(n):
-		out[idx] = _deformed_vertex(idx)
-	return out
-
-
-func _deformed_vertex(idx: int) -> Vector3:
-	var v: Vector3 = model.vertices[idx] * scale_factor
-	for def in model.deformations:
-		var indices: PackedInt32Array = def.get("indices", PackedInt32Array())
-		if idx in indices:
-			var top_y: float = float(def.get("top_y", 0.0)) * scale_factor
-			var mast_z: float = float(def.get("mast_z", 0.0)) * scale_factor
-			v.y = top_y + (v.y - top_y) * open_factor
-			v.z = mast_z + (v.z - mast_z) * open_factor
-			break
-	return v

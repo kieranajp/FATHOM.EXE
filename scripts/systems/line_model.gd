@@ -58,8 +58,8 @@ func build_immediate_mesh(scale: float = 1.0, open_factor: float = 1.0) -> Immed
 		var i0: int = edges[i]
 		var i1: int = edges[i + 1]
 		if i0 >= 0 and i1 >= 0 and i0 < vertices.size() and i1 < vertices.size():
-			mesh.surface_add_vertex(_deformed_vertex(i0, scale, open_factor))
-			mesh.surface_add_vertex(_deformed_vertex(i1, scale, open_factor))
+			mesh.surface_add_vertex(deformed_vertex(i0, scale, open_factor))
+			mesh.surface_add_vertex(deformed_vertex(i1, scale, open_factor))
 		i += 2
 	mesh.surface_end()
 	return mesh
@@ -77,8 +77,8 @@ func rebuild_immediate_mesh(mesh: ImmediateMesh, scale: float = 1.0, open_factor
 		var i0: int = edges[i]
 		var i1: int = edges[i + 1]
 		if i0 >= 0 and i1 >= 0 and i0 < vertices.size() and i1 < vertices.size():
-			mesh.surface_add_vertex(_deformed_vertex(i0, scale, open_factor))
-			mesh.surface_add_vertex(_deformed_vertex(i1, scale, open_factor))
+			mesh.surface_add_vertex(deformed_vertex(i0, scale, open_factor))
+			mesh.surface_add_vertex(deformed_vertex(i1, scale, open_factor))
 		i += 2
 	mesh.surface_end()
 
@@ -86,7 +86,17 @@ func rebuild_immediate_mesh(mesh: ImmediateMesh, scale: float = 1.0, open_factor
 # Returns the scaled position of vertex `idx`, with deformations applied at
 # `open_factor`. Iterates deformations; first match wins (sail verts shouldn't
 # be in multiple entries, but if they were we'd want deterministic order).
-func _deformed_vertex(idx: int, scale: float, open_factor: float) -> Vector3:
+# Returns the full array of deformed vertices.
+func deformed_vertices(scale: float, open_factor: float) -> PackedVector3Array:
+	var n: int = vertices.size()
+	var out := PackedVector3Array()
+	out.resize(n)
+	for idx in range(n):
+		out[idx] = deformed_vertex(idx, scale, open_factor)
+	return out
+
+
+func deformed_vertex(idx: int, scale: float, open_factor: float) -> Vector3:
 	var v: Vector3 = vertices[idx] * scale
 	for def in deformations:
 		var indices: PackedInt32Array = def.get("indices", PackedInt32Array())

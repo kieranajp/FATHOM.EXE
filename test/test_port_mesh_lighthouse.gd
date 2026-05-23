@@ -8,13 +8,9 @@
 extends GutTest
 
 
-# Mirror of PortMesh._port_id_seed — duplicated here so the test doesn't reach
-# into a private static. Sum of unicode codepoints.
+# Call Economy.port_seed directly.
 func _seed_for(port_id: String) -> int:
-	var total: int = 0
-	for i in range(port_id.length()):
-		total += port_id.unicode_at(i)
-	return total
+	return Economy.port_seed(port_id)
 
 
 func _build_for_seed(seed_val: int, height: float) -> Node3D:
