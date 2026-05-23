@@ -49,8 +49,11 @@ func _ready() -> void:
 	World.enforcer = null
 
 	# Wire ocean ref into already-spawned enemies (if any pre-exist for tests).
+	# Guard with is_instance_valid: cross-test contamination can leave queue_freed
+	# EnemyShip refs in World.enemies, and `is` on a freed instance crashes with
+	# "Left operand of 'is' is a previously freed instance".
 	for e in World.enemies:
-		if e is EnemyShip:
+		if is_instance_valid(e) and e is EnemyShip:
 			(e as EnemyShip).wire_ocean(_ocean)
 
 	# Clear enemies on archipelago change (fast-travel).
